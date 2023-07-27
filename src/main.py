@@ -1,7 +1,8 @@
 import simpy
 import random
 import visualization
-#test
+import matplotlib.pyplot as plt
+import seaborn as sns
 # Items:
 # ID: Index of the element in the dictionary
 # TYPE: Product, Raw Material, WIP;
@@ -43,10 +44,10 @@ MIN_ORDER_SIZE = 80
 MAX_ORDER_SIZE = 120
 '''
 # Simulation
-SIM_TIME = 5  # [days]
+SIM_TIME = 3  # [days]
 INITIAL_INVENTORY = 30  # [units]
 
-
+#nventory(env, i, I[i]["HOLD_COST"], I[i]["SHORTAGE_COST"]))
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost):
         self.item_id = item_id  # 0: product; others: WIP or raw material
@@ -326,16 +327,49 @@ def main():
                     f"[{I[inven.item_id]['NAME']}]  {inven.level}")
         env.run(until=i+1)
 
-    '''
-    # Visualize the data trackers of the inventory level and cost over time
+    sns.set(style="darkgrid")
+    plt.figure(figsize=(10, 6))
+    
     for i in I.keys():
-        inventory_visualization = visualization.visualization(
-            inventoryList[i], I[i]['NAME'])
-        inventory_visualization.inventory_level_graph()
-        inventory_visualization.inventory_cost_graph()
+        plt.plot(inventoryList[i].level_over_time, label=f"[{inventoryList[i]['NAME']}]")
+    plt.xlabel('time[days]')
+    plt.ylabel('inventory')    
+    plt.legend() 
+    plt.grid(True)
+    plt.show()
         # calculate_inventory_cost()
-    '''
 
+    sns.set(style="darkgrid")
+    plt.figure(figsize=(10, 6))
+    
+    for i in I.keys():
+        plt.plot(inventoryList[i].inventory_cost_over_time, label=i)
+    plt.xlabel('time[days]')
+    plt.ylabel('inventory')    
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+     
+   
+
+def inventory_level_graph(inventory,id):
+    sns.set(style="darkgrid")
+    plt.figure(figsize=(10, 6))
+    plt.plot(inventory.level_over_time, label=(' %d : inventory_level id',id))
+    plt.ylabel('inventory')
+    plt.title(f'{id} inventory_level')
+    plt.legend()
+    plt.grid(True)
+
+def inventory_cost_graph(inventory,id):
+    sns.set(style="darkgrid")
+    plt.figure(figsize=(10, 6))
+    plt.plot(inventory.inventory_cost_over_time, label=('%d : inventory_cost',id))
+    plt.xlabel('time[days]')
+    plt.ylabel('inventory_cost')
+    plt.title(f'{id} inventory_cost')
+    plt.legend()
+    plt.grid(True)
 
 if __name__ == "__main__":
     main()
