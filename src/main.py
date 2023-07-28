@@ -151,12 +151,14 @@ class Production:
                     inven.level -= 1
                     print(
                         f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
+                    print(f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {inven.level*I[inven.item_id]['HOLD_COST']}")
                 self.output_inventory.level += 1
                 self.cal_processing_cost(processing_time)
                 print(
                     f"{self.env.now}: A unit of {self.output['NAME']} has been produced")
                 print(
                     f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
+                print(f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']}")
 
     def cal_processing_cost(self, processing_time):
         self.daily_production_cost += self.processing_cost * processing_time
@@ -326,9 +328,13 @@ def main():
                 print(
                     f"[{I[inven.item_id]['NAME']}]  {inven.level}")
         env.run(until=i+1)
+'''
 
+#visualization
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6))
+    
+    
     
     for i in I.keys():
         plt.plot(inventoryList[i].level_over_time, label=f"[{inventoryList[i]['NAME']}]")
@@ -337,7 +343,7 @@ def main():
     plt.legend() 
     plt.grid(True)
     plt.show()
-        # calculate_inventory_cost()
+       
 
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6))
@@ -349,27 +355,7 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
-     
-   
-
-def inventory_level_graph(inventory,id):
-    sns.set(style="darkgrid")
-    plt.figure(figsize=(10, 6))
-    plt.plot(inventory.level_over_time, label=(' %d : inventory_level id',id))
-    plt.ylabel('inventory')
-    plt.title(f'{id} inventory_level')
-    plt.legend()
-    plt.grid(True)
-
-def inventory_cost_graph(inventory,id):
-    sns.set(style="darkgrid")
-    plt.figure(figsize=(10, 6))
-    plt.plot(inventory.inventory_cost_over_time, label=('%d : inventory_cost',id))
-    plt.xlabel('time[days]')
-    plt.ylabel('inventory_cost')
-    plt.title(f'{id} inventory_cost')
-    plt.legend()
-    plt.grid(True)
+'''    
 
 if __name__ == "__main__":
     main()
