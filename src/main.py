@@ -183,6 +183,7 @@ class Production:
     def cal_daily_production_cost(self):
         print(
             f"[Daily production cost of {self.name}]  {self.daily_production_cost}")
+        INV_COST[int(self.env.now/24)][int(self.env.now)%24][0]=(round(self.daily_production_cost,2))
         self.daily_production_cost = 0
 
 
@@ -388,7 +389,7 @@ def main():
                     f"[{I[inven.item_id]['NAME']}]  {inven.level}")
            
         env.run(until=i+1)
-        print(INV_COST[1][0])
+    print(INV_COST)
 '''
 #visualization
     sns.set(style="darkgrid")
