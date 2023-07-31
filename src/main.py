@@ -3,6 +3,7 @@ import random
 import visualization
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 # Items:
 # ID: Index of the element in the dictionary
 # TYPE: Product, Raw Material, WIP;
@@ -46,8 +47,12 @@ MAX_ORDER_SIZE = 120
 # Simulation
 SIM_TIME = 3  # [days]
 INITIAL_INVENTORY = 30  # [units]
+RAW_MATERIALS = 2 #Max number of process materials
+INV_COST=np.zeros((SIM_TIME,24,1+ RAW_MATERIALS*2+1))  
+                    #(day,hours,Product + RawMaterials * Number of Process + WIP)
 
-#nventory(env, i, I[i]["HOLD_COST"], I[i]["SHORTAGE_COST"]))
+
+#inventory(env, i, I[i]["HOLD_COST"], I[i]["SHORTAGE_COST"]))
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost):
         self.item_id = item_id  # 0: product; others: WIP or raw material
@@ -56,8 +61,10 @@ class Inventory:
         self.shortage_cost = shortage_cost
         self.level_over_time = []  # Data tracking for inventory level
         self.inventory_cost_over_time = []  # Data tracking for inventory cost
-
+        self.total_inven_cost=[]
+        
     def cal_inventory_cost(self):
+        
         if self.level > 0:
             self.inventory_cost_over_time.append(
                 self.holding_cost * self.level)
@@ -66,9 +73,10 @@ class Inventory:
                 self.shortage_cost * abs(self.level))
         else:
             self.inventory_cost_over_time.append(0)
+        self.total_inven_cost = self.inventory_cost_over_time
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
-
+    
 
 class Provider:
     def __init__(self, env, name, item_id):
@@ -127,8 +135,10 @@ class Production:
         self.processing_cost = processing_cost
         self.processing_cost_over_time = []  # Data tracking for processing cost
         self.daily_production_cost = 0
-
+        
+       #can change variables
     def process(self):
+        
         while True:
             # Check the current state if input materials or WIPs are available
             shortage_check = False
@@ -147,19 +157,26 @@ class Production:
                 processing_time = 24 / self.production_rate
                 yield self.env.timeout(processing_time)
                 print(f"{self.env.now}: Process {self.process_id} begins")
+                i=0
                 for inven in self.input_inventories:
                     inven.level -= 1
                     print(
                         f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
-                    print(f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {inven.level*I[inven.item_id]['HOLD_COST']}")
+                    print(f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2)}")
+                    INV_COST[int(self.env.now/24)][int(self.env.now)%24][RAW_MATERIALS * self.process_id + i + 1]=round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2)
+                    i=i+1
+                
                 self.output_inventory.level += 1
                 self.cal_processing_cost(processing_time)
+                
                 print(
                     f"{self.env.now}: A unit of {self.output['NAME']} has been produced")
                 print(
                     f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
-                print(f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']}")
-
+                print(
+                    f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2)}")
+                            
+                INV_COST[int(self.env.now/24)][int(self.env.now)%24][-1]=(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2))
     def cal_processing_cost(self, processing_time):
         self.daily_production_cost += self.processing_cost * processing_time
 
@@ -228,6 +245,9 @@ class Customer:
                 f"{self.env.now}: The customer has placed an order for {order_size} units of {I[self.item_id]['NAME']}")
             self.env.process(sales.delivery(
                 self.item_id, order_size, product_inventory))
+            
+    
+    
     ''' 
     def delivery(self, product_inventory):
         while True:
@@ -256,7 +276,42 @@ def calculate_inventory_cost():
             inventory_cost[item] += BACKORDER_COST * abs(quantity)
         inventory_cost_over_time[item].append(inventory_cost[item])
 '''
+def cal_cost(inventoryList, productionList, procurementList,sales):
+    total_cost_per_day=[]
+    for i in range(SIM_TIME*24):
+        # Print the inventory level every 24 hours (1 day)
+        if i % 24 == 0:
+            if i != 0:
+                # Calculate the cost models
+                for inven in inventoryList:
+                    inven.cal_inventory_cost()
+                for production in productionList:
+                    production.cal_daily_production_cost()
+                for procurement in procurementList:
+                    procurement.cal_daily_procurement_cost()
+                sales.cal_daily_selling_cost()
+                # Calculate the total cost for the current day and append to the list
+                total_cost = 0
+                for inven in inventoryList:
+                    total_cost += sum(inven.inventory_cost_over_time)
+                for production in productionList:
+                    total_cost += production.daily_production_cost
+                for procurement in procurementList:
+                    total_cost += procurement.daily_procurement_cost
+                total_cost += sales.daily_selling_cost
+                total_cost_per_day.append(total_cost)
 
+                # Reset daily cost variables
+                for inven in inventoryList:
+                    inven.inventory_cost_over_time = []
+                for production in productionList:
+                    production.daily_production_cost = 0
+                for procurement in procurementList:
+                    procurement.daily_procurement_cost = 0
+                sales.daily_selling_cost = 0
+                
+                print(total_cost_per_day)
+        
 
 def main():
     env = simpy.Environment()
@@ -288,6 +343,8 @@ def main():
                 env, I[i]["ID"], I[i]["PURCHASE_COST"], I[i]["SETUP_COST_RAW"]))
     print("Number of Providers: ", len(providerList))
 
+    
+    
     # Create managers for manufacturing process, procurement process, and delivery process
     sales = Sales(env, customer.item_id,
                   I[0]["DELIVERY_COST"], I[0]["SETUP_COST_PRO"])
@@ -321,21 +378,21 @@ def main():
                 for procurement in procurementList:
                     procurement.cal_daily_procurement_cost()
                 sales.cal_daily_selling_cost()
+
+            
             # Print the inventory level
             print(f"\nDAY {int(i/24)+1}")
             for inven in inventoryList:
                 inven.level_over_time.append(inven.level)
                 print(
                     f"[{I[inven.item_id]['NAME']}]  {inven.level}")
+           
         env.run(until=i+1)
+        print(INV_COST[1][0])
 '''
-
 #visualization
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6))
-    
-    
-    
     for i in I.keys():
         plt.plot(inventoryList[i].level_over_time, label=f"[{inventoryList[i]['NAME']}]")
     plt.xlabel('time[days]')
@@ -347,10 +404,20 @@ def main():
 
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6))
-    
     for i in I.keys():
         plt.plot(inventoryList[i].inventory_cost_over_time, label=i)
     plt.xlabel('time[days]')
+    plt.ylabel('inventory')    
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    
+    sns.set(style="darkgrid")
+    plt.figure(figsize=(10, 6))
+    for i in I.keys():
+        plt.plot(inventoryList[i].inventory_cost_over_time, label=i)
+    plt.xlabel('time[hours]')
     plt.ylabel('inventory')    
     plt.legend()
     plt.grid(True)
