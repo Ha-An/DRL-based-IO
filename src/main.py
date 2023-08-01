@@ -45,13 +45,11 @@ MIN_ORDER_SIZE = 80
 MAX_ORDER_SIZE = 120
 '''
 # Simulation
-SIM_TIME = 3  # [days]
-INITIAL_INVENTORY = 30  # [units]
+SIM_TIME =5  # [days]
+INITIAL_INVENTORY = 10  # [units]
 RAW_MATERIALS = 2 #Max number of process materials
 INV_COST=np.zeros((SIM_TIME,24,1+ RAW_MATERIALS*2+1))  
                     #(day,hours,Product + RawMaterials * Number of Process + WIP)
-
-
 #inventory(env, i, I[i]["HOLD_COST"], I[i]["SHORTAGE_COST"]))
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost):
@@ -135,7 +133,7 @@ class Production:
         self.processing_cost = processing_cost
         self.processing_cost_over_time = []  # Data tracking for processing cost
         self.daily_production_cost = 0
-        
+    
        #can change variables
     def process(self):
         
@@ -151,6 +149,7 @@ class Production:
                     f"{self.env.now}: Stop {self.name} due to a shortage of input materials or WIPs")
                 # Check again after 24 hours (1 day)
                 yield self.env.timeout(24)
+                
                 # continue
             else:
                 # Consuming input materials or WIPs and producing output WIP or Product
@@ -374,6 +373,7 @@ def main():
                 # Calculate the cost models
                 for inven in inventoryList:
                     inven.cal_inventory_cost()
+                    
                 for production in productionList:
                     production.cal_daily_production_cost()
                 for procurement in procurementList:
@@ -385,11 +385,37 @@ def main():
             print(f"\nDAY {int(i/24)+1}")
             for inven in inventoryList:
                 inven.level_over_time.append(inven.level)
-                print(
+                if inven.level>=0:
+                    print(
                     f"[{I[inven.item_id]['NAME']}]  {inven.level}")
+                else:
+                    print(
+                    f"[{I[inven.item_id]['NAME']}]  0")
+           
            
         env.run(until=i+1)
-    print(INV_COST)
+        
+        
+    #visualization
+    cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
+    level_list=[]#inventory_level by id
+    item_name_list=[]
+    for i in I.keys():
+        temp1=[]
+        temp2=[]
+        inventory_visualization = visualization.visualization(
+            inventoryList[i])
+        temp1,temp2=inventory_visualization.return_list()
+        level_list.append(temp1)
+        cost_list.append(temp2)
+        item_name_list.append(I[i]['NAME'])
+    inventory_visualization.inventory_level(level_list,item_name_list)
+    inventory_visualization.inventory_cost(cost_list,item_name_list)
+        
+       
+    
+        
+
 '''
 #visualization
     sns.set(style="darkgrid")
