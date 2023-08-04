@@ -27,7 +27,7 @@ import numpy as np
 # BACKORDER_COST: Backorder cost of products or WIP [$/unit]
 
 COST_VALID = False
-VISUAL = False
+VISUAL = True
 
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 6, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -51,7 +51,7 @@ MAX_ORDER_SIZE = 120
 '''
 # Simulation
 SIM_TIME = 14  # [days]
-INITIAL_INVENTORY = 10  # [units]
+INITIAL_INVENTORY = 50  # [units]
 RAW_MATERIALS = 2 #Max number of process materials
 INV_COST=np.zeros((SIM_TIME,24,1+ RAW_MATERIALS*2+1))  
                     #(day,hours,Product + RawMaterials * Number of Process + WIP)
@@ -201,10 +201,13 @@ class Sales:
         self.daily_selling_cost = 0
 
     def delivery(self, item_id, order_size, product_inventory):
-        # Lead time
-        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)  ##작동이 안됨
-        # SHORTAGE: Check if products are available
         print('inventory level-1',product_inventory.level)
+        print('order size',order_size)
+        # Lead time
+        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)  
+        
+        
+        # SHORTAGE: Check if products are available
         if product_inventory.level < order_size:
             num_shortages = abs(product_inventory.level - order_size)
             if product_inventory.level > 0:
@@ -225,6 +228,8 @@ class Sales:
             self.cal_selling_cost()
             
     def cost_of_loss(self, order_size, product_inventory, item_id): #due to not enough production
+        print('due date',I[item_id]["DUE_DATE"])
+        print('manu lead time',I[item_id]["MANU_LEAD_TIME"])
         if I[item_id]["MANU_LEAD_TIME"] > I[item_id]["DUE_DATE"]:
             if product_inventory.level < order_size:
                 num_shortages = abs(product_inventory.level - order_size)
@@ -327,6 +332,10 @@ def cal_cost(inventoryList, productionList, procurementList,sales):
                 sales.daily_selling_cost = 0
                 
                 print(total_cost_per_day)
+    return total_cost_per_day
+            
+            
+                
         
 
 def main():
@@ -420,6 +429,8 @@ def main():
         cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
         level_list=[]#inventory_level by id
         item_name_list=[]
+        total_cost_per_day = cal_cost(inventoryList, productionList, procurementList,sales)
+        total_cost_list = total_cost_per_day
         for i in I.keys():
             temp1=[]
             temp2=[]
@@ -430,7 +441,7 @@ def main():
             cost_list.append(temp2)
             item_name_list.append(I[i]['NAME'])
         inventory_visualization = visualization.visualization(None) # 필요하지 않으므로 None
-        inventory_visualization.plot_inventory_graphs(level_list, cost_list, item_name_list)
+        inventory_visualization.plot_inventory_graphs(level_list, cost_list,total_cost_list,item_name_list)
         
        
     
