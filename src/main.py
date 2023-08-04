@@ -23,8 +23,13 @@ import numpy as np
 # SETUP_COST_PRO: Setup cost for the delivery of the products to the customer [$/delivery]
 # SETUP_COST_RAW: Setup cost for the ordering of the raw materials to a supplier [$/order]
 # DELIVERY_COST: Delivery cost of the products [$/unit]
+# DUE_DATE: Due date of customer order [days]
+# BACKORDER_COST: Backorder cost of products or WIP [$/unit]
 
-I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10},
+COST_VALID = False
+VISUAL = False
+
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 6, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      2: {"ID": 2, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      3: {"ID": 3, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.2", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -45,7 +50,7 @@ MIN_ORDER_SIZE = 80
 MAX_ORDER_SIZE = 120
 '''
 # Simulation
-SIM_TIME =5  # [days]
+SIM_TIME = 14  # [days]
 INITIAL_INVENTORY = 10  # [units]
 RAW_MATERIALS = 2 #Max number of process materials
 INV_COST=np.zeros((SIM_TIME,24,1+ RAW_MATERIALS*2+1))  
@@ -109,7 +114,7 @@ class Procurement:
             print(
                 f"{self.env.now}: Placed an order for {order_size} units of {I[self.item_id]['NAME']}")
             self.env.process(provider.deliver(order_size, inventory))
-            self.cal_procurement_cost(self)
+            self.cal_procurement_cost()
 
     def cal_procurement_cost(self):
         self.daily_procurement_cost += self.purchase_cost * \
@@ -197,8 +202,9 @@ class Sales:
 
     def delivery(self, item_id, order_size, product_inventory):
         # Lead time
-        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)
+        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)  ##작동이 안됨
         # SHORTAGE: Check if products are available
+        print('inventory level-1',product_inventory.level)
         if product_inventory.level < order_size:
             num_shortages = abs(product_inventory.level - order_size)
             if product_inventory.level > 0:
@@ -217,6 +223,16 @@ class Sales:
             print(
                 f"{self.env.now}: {order_size} units of the product have been delivered to the customer")
             self.cal_selling_cost()
+            
+    def cost_of_loss(self, order_size, product_inventory, item_id): #due to not enough production
+        if I[item_id]["MANU_LEAD_TIME"] > I[item_id]["DUE_DATE"]:
+            if product_inventory.level < order_size:
+                num_shortages = abs(product_inventory.level - order_size)
+                loss_cost = self.backorder_cost * num_shortages
+                print(f"<Cost of Loss> : {loss_cost}")
+            else:
+                loss_cost = 0
+            return loss_cost
 
     def cal_selling_cost(self):
         self.daily_selling_cost += self.delivery_cost * \
@@ -395,22 +411,26 @@ def main():
            
         env.run(until=i+1)
         
+        if COST_VALID:
+            print(INV_COST)
+        
         
     #visualization
-    cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
-    level_list=[]#inventory_level by id
-    item_name_list=[]
-    for i in I.keys():
-        temp1=[]
-        temp2=[]
-        inventory_visualization = visualization.visualization(
-            inventoryList[i])
-        temp1,temp2=inventory_visualization.return_list()
-        level_list.append(temp1)
-        cost_list.append(temp2)
-        item_name_list.append(I[i]['NAME'])
-    inventory_visualization.inventory_level(level_list,item_name_list)
-    inventory_visualization.inventory_cost(cost_list,item_name_list)
+    if VISUAL :
+        cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
+        level_list=[]#inventory_level by id
+        item_name_list=[]
+        for i in I.keys():
+            temp1=[]
+            temp2=[]
+            inventory_visualization = visualization.visualization(
+                inventoryList[i])
+            temp1,temp2=inventory_visualization.return_list()
+            level_list.append(temp1)
+            cost_list.append(temp2)
+            item_name_list.append(I[i]['NAME'])
+        inventory_visualization = visualization.visualization(None) # 필요하지 않으므로 None
+        inventory_visualization.plot_inventory_graphs(level_list, cost_list, item_name_list)
         
        
     
