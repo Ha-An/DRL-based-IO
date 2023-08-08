@@ -1,4 +1,6 @@
 import simpy
+import numpy as np
+
 import random
 from visualization import *
 from DQN import *
