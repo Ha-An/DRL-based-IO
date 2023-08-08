@@ -28,6 +28,7 @@ import numpy as np
 
 COST_VALID = False
 VISUAL = False
+SPECIFIC_HOLDING_COST = False
 
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 2, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -63,7 +64,7 @@ for i in range(SIM_TIME):
     EVENT_HOLDING_COST.append(num)
     
     
-print(EVENT_HOLDING_COST)
+
 #inventory(env, i, I[i]["HOLD_COST"], I[i]["SHORTAGE_COST"]))
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost):
@@ -90,7 +91,13 @@ class Inventory:
         self.total_inven_cost = self.inventory_cost_over_time
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
-        print( f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time}")
+        
+    def cal_event_holding_cost(self):
+        
+        for j in range(len(I)):
+            for i in range(SIM_TIME-1):
+                daily_holding_cost = sum(EVENT_HOLDING_COST[i-1][j])
+            print(f"[Daily holding Cost of {I[j]['NAME']}] {daily_holding_cost}")
 
     
 
@@ -151,10 +158,9 @@ class Production:
         self.processing_cost = processing_cost
         self.processing_cost_over_time = []  # Data tracking for processing cost
         self.daily_production_cost = 0
-        self.temp=9999
-
-
         
+
+
     
        #can change variables
     def process(self):
@@ -184,11 +190,10 @@ class Production:
                     
                     print(
                         f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
-                    print(f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2)}")
-                    INV_COST[int(self.env.now/24)][int(self.env.now)%24][RAW_MATERIALS * self.process_id + i + 1]=round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2)
+                    print(f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {round((inven.level*I[inven.item_id]['HOLD_COST']),2)}")
+                    INV_COST[int(self.env.now/24)][int(self.env.now)%24][RAW_MATERIALS * self.process_id + i + 1]=round((inven.level*I[inven.item_id]['HOLD_COST']),2)
                     i=i+1
-                    print('value:',round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2))
-                    EVENT_HOLDING_COST[int(self.env.now/24)][inven.item_id].append(round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2))
+                    EVENT_HOLDING_COST[int(self.env.now/24)][inven.item_id].append(round((inven.level*I[inven.item_id]['HOLD_COST']),2))
                     self.temp=inven.item_id
  
             
@@ -200,11 +205,12 @@ class Production:
                 print(
                     f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
                 print(
-                    f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2)}")
+                    f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2)}")
                             
-                INV_COST[int(self.env.now/24)][int(self.env.now)%24][-1]=(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2))
-                EVENT_HOLDING_COST[int(self.env.now/24)][-1].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2))
-    
+                INV_COST[int(self.env.now/24)][int(self.env.now)%24][-1]=(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
+                EVENT_HOLDING_COST[int(self.env.now/24)][-1].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
+                EVENT_HOLDING_COST[int(self.env.now/24)][0].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
+                
     def cal_processing_cost(self, processing_time):
         self.daily_production_cost += self.processing_cost * processing_time
 
@@ -213,7 +219,10 @@ class Production:
             f"[Daily production cost of {self.name}]  {self.daily_production_cost}")
         INV_COST[int(self.env.now/24)][int(self.env.now)%24][0]=(round(self.daily_production_cost,2))
         self.daily_production_cost = 0
-
+        
+        
+        
+        
 
 class Sales:
     def __init__(self, env, item_id, delivery_cost, setup_cost):
@@ -225,8 +234,6 @@ class Sales:
         self.daily_selling_cost = 0
 
     def delivery(self, item_id, order_size, product_inventory):
-        print('inventory level-1',product_inventory.level)
-        print('order size',order_size)
         # Lead time
         yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)  
         
@@ -428,6 +435,7 @@ def main():
                     procurement.cal_daily_procurement_cost()
                 cost=sales.cost_of_loss(0,I[customer.item_id]['DEMAND_QUANTITY'],inventoryList[I[0]["ID"]])
                 sales.cal_daily_selling_cost()
+                inven.cal_event_holding_cost()
                 
             
             # Print the inventory level
@@ -444,9 +452,12 @@ def main():
            
         env.run(until=i+1)
     
-    print(EVENT_HOLDING_COST)
     
-
+    
+    
+    if SPECIFIC_HOLDING_COST:
+        print(EVENT_HOLDING_COST)
+    
     if COST_VALID:
         print(INV_COST)
     
