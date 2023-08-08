@@ -44,8 +44,8 @@ MAX_ORDER_SIZE = 120
 '''
 Ver_print = False
 # Simulation
-SIM_TIME = 30# [days]
-INITIAL_INVENTORY = 30 # [units]
+SIM_TIME = 100  # [days]
+INITIAL_INVENTORY = 30  # [units]
 total_cost_per_day = []
 EPISODES = 1000
 batch_size = 32
@@ -309,7 +309,6 @@ def take_action(action_space, action, env, inventoryList, total_cost_per_day, I)
 
     # Calculate the next state after the actions are taken
     next_state = np.array([inven.level for inven in inventoryList])
-    next_state = next_state.reshape(1, len(inventoryList))
 
     # Calculate the reward and whether the simulation is done
     # You need to define this function based on your specific reward policy
@@ -375,7 +374,6 @@ def main():
     state = np.array([inven.level for inven in inventoryList]
                      )  # Get the inventory levels
     state_size = len(inventoryList)  # Number of inventories
-    state = state.reshape(1, state_size)
     agent = DQNAgent(state_size, action_space)
     done = (env.now >= SIM_TIME * 24)
     total_rewards, losses = [], []
@@ -481,7 +479,6 @@ def main():
                                 providerList[i], inventoryList[providerList[i].item_id]))
                         state = np.array([inven.level for inven in inventoryList]
                                          )  # Get the initial inventory levels
-                        state = state.reshape(1, len(inventoryList))          
                         break
     # Print the inventory level
     '''

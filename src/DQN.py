@@ -14,9 +14,9 @@ Transition = namedtuple(
 
 
 class DQNAgent:
-    def __init__(self, state_size, action_space, discount_factor=1,
-                 epsilon_greedy=1.0, epsilon_min=0.01, epsilon_decay=0.99995,
-                 learning_rate=0.001, max_memory_size=2000):
+    def __init__(self, state_size, action_space, discount_factor=0.9999,
+                 epsilon_greedy=1.0, epsilon_min=0.05, epsilon_decay=0.999995,
+                 learning_rate=0.0001, max_memory_size=10000):
 
         self.state_size = state_size
         self.action_size = len(action_space)
@@ -63,8 +63,9 @@ class DQNAgent:
             return random.choice(self.action_space)
         else:
             q_values = self.model(torch.FloatTensor(state).to(device))
-            # print(q_values.argmax())
-            return q_values.argmax()
+        print(q_values.argmax())
+        # print(q_values.argmax())
+        return q_values.argmax()
 
         # action_idx = np.argmax(q_values)
         # return self.action_space[action_idx]
@@ -84,9 +85,9 @@ class DQNAgent:
             if type(a) == list:
                 for i in range(len(self.action_space)):
                     if self.action_space[i] == a:
-                        q_values[0][i] = target
+                        q_values[i] = target
             else:
-                q_values[0][a] = target
+                q_values[a] = target
             batch_states.append(state_tensor.flatten())
             batch_targets.append(q_values)
 
@@ -109,8 +110,7 @@ class DQNAgent:
 
     def _adjust_epsilon(self):
         if self.epsilon > self.epsilon_min:
-            if self.epsilon > 0.01:
-                self.epsilon *= self.epsilon_decay
+            self.epsilon *= self.epsilon_decay
 
     def remember(self, transition):
         self.memory.append(transition)
