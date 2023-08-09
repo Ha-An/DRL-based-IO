@@ -53,7 +53,7 @@ class visualization:
     def return_list(self):
        self.level_list.append(self.inventory.level_over_time)
        self.cost_list.append(self.inventory.inventory_cost_over_time)
-       cal_cost = 
+       #cal_cost = 
        return self.level_list,self.cost_list 
 
     def plot_inventory_graphs(self, level, cost, item_name_list):

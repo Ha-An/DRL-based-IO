@@ -30,7 +30,7 @@ COST_VALID = False
 VISUAL = False
 SPECIFIC_HOLDING_COST = False
 
-I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 2, "BACKORDER_COST": 5},
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21,                                           "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 2, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      2: {"ID": 2, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.1", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      3: {"ID": 3, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.2", "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -51,8 +51,8 @@ MIN_ORDER_SIZE = 80
 MAX_ORDER_SIZE = 120
 '''
 # Simulation
-SIM_TIME = 3  # [days]
-INITIAL_INVENTORY = 30  # [units]
+SIM_TIME = 10  # [days]
+INITIAL_INVENTORY = 10  # [units]
 RAW_MATERIALS = 2 #Max number of process materials
 INV_COST=np.zeros((SIM_TIME,24,1+ RAW_MATERIALS*2+1))  
                     #(day,hours,Product + RawMaterials * Number of Process + WIP)
@@ -235,7 +235,7 @@ class Sales:
 
     def delivery(self, item_id, order_size, product_inventory):
         # Lead time
-        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)  
+        yield self.env.timeout(I[item_id]["DUE_DATE"] * 24)  
         
         
         # SHORTAGE: Check if products are available
