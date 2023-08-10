@@ -67,7 +67,7 @@ def main():
                         print("day", i/24)
                     
                     env.cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day)
-
+                       
                     action = agent.choose_action(state)
                     next_state, reward, done = take_action(
                         action_space, action, simpy_env, inventoryList, total_cost_per_day, I)
@@ -115,6 +115,29 @@ def main():
         inventory_visualization.inventory_cost_graph()
         # calculate_inventory_cost()
     '''
+    
+    if SPECIFIC_HOLDING_COST:
+        print(EventHoldingCost)
+    
+    #visualization
+    if VISUAL :
+        cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
+        level_list=[]#inventory_level by id
+        item_name_list=[]
+        total_cost_per_day = env.cal_cost(inventoryList, productionList, procurementList,sales)
+        total_cost_list = total_cost_per_day
+        for i in I.keys():
+            temp1=[]
+            temp2=[]
+            inventory_visualization = visualization.visualization(
+                inventoryList[i])
+            temp1,temp2=inventory_visualization.return_list()
+            level_list.append(temp1)
+            cost_list.append(temp2)
+            item_name_list.append(I[i]['NAME'])
+        inventory_visualization = visualization.visualization(None) # 필요하지 않으므로 None
+        inventory_visualization.plot_inventory_graphs(level_list, cost_list,total_cost_list,item_name_list)
+        
 
 if __name__ == "__main__":
     main()

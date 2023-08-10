@@ -6,6 +6,12 @@ from config import *
 import random
 import visualization
 
+EventHoldingCost = []  # save the event holding cost
+for i in range(SIM_TIME):
+    num = []
+    for j in range(len(I)):
+        num.append([])
+    EventHoldingCost.append(num)
 
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost, initial_level):
@@ -94,13 +100,15 @@ class Production:
             shortage_check = False
             for inven in self.input_inventories:
                 if inven.level < 1:
-                    inven.level -= 1
+                    #inven.level -= 1 #개념적 재고량을 계산할때 필요
                     shortage_check = True
             if shortage_check:
+                self.process_stop_cost += P[self.process_id]["PRO_STOP_COST"]
                 print(
                     f"{self.env.now}: Stop {self.name} due to a shortage of input materials or WIPs")
-                # Check again after 24 hours (1 day)
-                yield self.env.timeout(24)
+                print(
+                    f"{self.env.now}: Process stop cost : {self.process_stop_cost}")               
+                yield self.env.timeout(24)  # Check again after 24 hours (1 day)
                 # continue
             else:
                 # Consuming input materials or WIPs and producing output WIP or Product
@@ -111,13 +119,22 @@ class Production:
                     inven.level -= 1
                     print(
                         f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
+                    print(
+                        f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {round((inven.level*I[inven.item_id]['HOLD_COST']),2)}")
+                    EventHoldingCost[int(self.env.now/24)][inven.item_id].append(round((inven.level*I[inven.item_id]['HOLD_COST']),2))
+                
                 self.output_inventory.level += 1
                 self.cal_processing_cost(processing_time)
                 print(
                     f"{self.env.now}: A unit of {self.output['NAME']} has been produced")
                 print(
                     f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
-
+                print(
+                    f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2)}")
+                
+                EventHoldingCost[int(self.env.now/24)][-1].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
+                EventHoldingCost[int(self.env.now/24)][0].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
+    
     def cal_processing_cost(self, processing_time):
         self.daily_production_cost += self.processing_cost * processing_time
 
@@ -138,7 +155,7 @@ class Sales:
 
     def delivery(self, item_id, order_size, product_inventory):
         # Lead time
-        yield self.env.timeout(I[item_id]["MANU_LEAD_TIME"] * 24)
+        yield self.env.timeout(I[item_id]["DUE_DATE"] * 24)
         # SHORTAGE: Check if products are available
         if product_inventory.level < order_size:
             num_shortages = abs(product_inventory.level - order_size)
@@ -148,6 +165,9 @@ class Sales:
                 # yield self.env.timeout(DELIVERY_TIME)
                 product_inventory.level -= order_size
                 self.cal_selling_cost()
+            self.loss_cost = I[item_id]["BACKORDER_COST"] * num_shortages
+            print(
+                f"[Cost of Loss] {self.loss_cost}")    
             print(
                 f"{self.env.now}: Unable to deliver {num_shortages} units to the customer due to product shortage")
             # Check again after 24 hours (1 day)
@@ -289,6 +309,7 @@ def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_p
     for procurement in procurementList:
         procurement.cal_daily_procurement_cost()
     sales.cal_daily_selling_cost()
+    inven.cal_event_holding_cost()
     # Calculate the total cost for the current day and append to the list
     total_cost = 0
     for inven in inventoryList:

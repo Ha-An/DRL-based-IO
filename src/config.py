@@ -4,7 +4,6 @@
 # NAME: Item's name or model;
 # INIT_LEVEL: Initial inventory level [units] 
 # CUST_ORDER_CYCLE: Customer ordering cycle [days]
-# MANU_ORDER_CYCLE: Manufacturer ordering cycle to providers [days]
 # DEMAND_QUANTITY: Demand quantity for the final product [units]
 # DELIVERY_TIME_TO_CUST: Delivery time to the customer [days]
 # DELIVERY_TIME_FROM_SUP: Delivery time from a supplier [days]
@@ -17,8 +16,10 @@
 # SETUP_COST_PRO: Setup cost for the delivery of the products to the customer [$/delivery]
 # SETUP_COST_RAW: Setup cost for the ordering of the raw materials to a supplier [$/order]
 # DELIVERY_COST: Delivery cost of the products [$/unit]
+# DUE_DATE: Term of customer order to delivered [days]
+# BACKORDER_COST: Backorder cost of products or WIP [$/unit]
 
-I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVEL": 30, "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21, "MANU_LEAD_TIME": 7,                      "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10},
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVEL": 30, "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21,                                           "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      2: {"ID": 2, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.1", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      3: {"ID": 3, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.2", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -30,13 +31,20 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVE
 # INPUT_LIST: List of input materials or WIPs
 # OUTPUT: Output WIP or Product
 # PROCESS_COST: Processing cost of the process [$/day]
-P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]],             "OUTPUT": I[4], "PROCESS_COST": 5},
-     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "OUTPUT": I[0], "PROCESS_COST": 6}}
+# PRO_STOP_COST: Loss cost of process [$/unit]
+
+P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]],             "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
+     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
 
 
 Ver_print = False
+COST_VALID = False
+VISUAL = False
+SPECIFIC_HOLDING_COST = False
+EventHoldingCost = []
+
 # Simulation
-SIM_TIME = 30# [days]
+SIM_TIME = 30 # [days]
 INITIAL_INVENTORY = 30 # [units]
 total_cost_per_day = []
 EPISODES = 2
