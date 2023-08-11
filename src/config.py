@@ -19,7 +19,7 @@
 # DUE_DATE: Term of customer order to delivered [days]
 # BACKORDER_COST: Backorder cost of products or WIP [$/unit]
 
-I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVEL": 30, "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21,                                           "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10},
+I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVEL": 30, "CUST_ORDER_CYCLE": 7, "DEMAND_QUANTITY": 21,                                           "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 2, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1.1", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      2: {"ID": 2, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.1", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
      3: {"ID": 3, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 2.2", "INIT_LEVEL": 30, "MANU_ORDER_CYCLE": 7,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 21, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20},
@@ -29,12 +29,13 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVE
 # ID: Index of the element in the dictionary
 # PRODUCTION_RATE [units/day]
 # INPUT_LIST: List of input materials or WIPs
+# INPUT_USE_COUNT: Amount of input materials used in process [unit]
 # OUTPUT: Output WIP or Product
 # PROCESS_COST: Processing cost of the process [$/day]
 # PRO_STOP_COST: Loss cost of process [$/unit]
 
-P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]],             "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
-     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
+P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]]            , "INPUT_USE_COUNT": [2]    , "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
+     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "INPUT_USE_COUNT": [3,1,2], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
 
 
 Ver_print = False
@@ -44,10 +45,9 @@ SPECIFIC_HOLDING_COST = False
 EventHoldingCost = []
 
 # Simulation
-SIM_TIME = 30 # [days]
-INITIAL_INVENTORY = 30 # [units]
+SIM_TIME = 15 # [days]
 total_cost_per_day = []
-EPISODES = 2
+EPISODES = 1
 batch_size = 32
 action_space = []
 values = [0, 20, 40]

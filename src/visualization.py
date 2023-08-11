@@ -95,5 +95,14 @@ class visualization:
         plt.tight_layout()
         plt.show()
     
+    def plot_learning_history(history):
+        fig = plt.figure(1, figsize=(14, 5))
+        ax = fig.add_subplot(1, 1, 1)
+        plt.plot(history, lw=4,
+                 marker='o', markersize=10)
+        ax.tick_params(axis='both', which='major', labelsize=15)
+        plt.xlabel('Episodes', size=20)
+        plt.ylabel('# Total Rewards', size=20)
+        plt.show()
     
    

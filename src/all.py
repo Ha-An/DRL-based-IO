@@ -40,10 +40,11 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "CUST_ORDE
 # ID: Index of the element in the dictionary
 # PRODUCTION_RATE [units/day]
 # INPUT_LIST: List of input materials or WIPs
+# INPUT_USE_COUNT: Amount of input materials used in process
 # OUTPUT: Output WIP or Product
 # PROCESS_COST: Processing cost of the process [$/day]
-P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]],             "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
-     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
+P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]]            , "INPUT_USE_COUNT": [2],     "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
+     1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "INPUT_USE_COUNT": [3,1,2], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
 
 # Demand quantity for the final product [units]
 '''
@@ -169,8 +170,8 @@ class Production:
         while True:
             # Check the current state if input materials or WIPs are available
             shortage_check = False
-            for inven in zip.(self.input_inventories:
-                if inven.level < 1:
+            for inven,use_count in zip(self.input_inventories, P[self.process_id]["INPUT_USE_COUNT"]):
+                if inven.level < use_count:
                     #inven.level -= 1
                     shortage_check = True
             if shortage_check:                
@@ -184,12 +185,15 @@ class Production:
                 
                 # continue
             else:
+                # calculate the total number of units to process
+                total_use_count = sum(P[self.process_id]["INPUT_USE_COUNT"])
+                
                 # Consuming input materials or WIPs and producing output WIP or Product
                 processing_time = 24 / self.production_rate
                 yield self.env.timeout(processing_time)
                 print(f"{self.env.now}: Process {self.process_id} begins")
                 
-                for inven in self.input_inventories:
+                for inven, use_count in zip(self.input_inventories, P[self.process_id]["INPUT_USE_COUNT"]):
                     inven.level -= use_count
                     
                     print(
@@ -211,7 +215,6 @@ class Production:
                 print(
                     f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2)}")
                             
-                INV_COST[int(self.env.now/24)][int(self.env.now)%24][-1]=(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
                 EventHoldingCost[int(self.env.now/24)][-1].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
                 EventHoldingCost[int(self.env.now/24)][0].append(round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']),2))
                 

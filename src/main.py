@@ -65,7 +65,7 @@ def main():
                 if i != 0:
                     if Ver_print:
                         print("day", i/24)
-                    
+                        
                     env.cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day)
                        
                     action = agent.choose_action(state)
@@ -96,14 +96,20 @@ def main():
                         simpy_env, state = env.reset_env(inventoryList, procurementList, productionList, sales, customer, providerList)
       
                         break
+                    
     # Print the inventory level
-    '''
+    
                 print(f"\nDAY {int(i/24)+1}")
                 for inven in inventoryList:
                     inven.level_over_time.append(inven.level)
+                    if inven.level>=0:
+                        print(
+                            f"[{I[inven.item_id]['NAME']}]  {inven.level}")
+                else:
                     print(
-                        f"[{I[inven.item_id]['NAME']}]  {inven.level}")
-    '''
+                        f"[{I[inven.item_id]['NAME']}]  0")
+            
+    
     print(total_rewards)
     visualization.plot_learning_history(total_rewards) 
     '''

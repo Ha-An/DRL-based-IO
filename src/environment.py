@@ -21,7 +21,6 @@ class Inventory:
         self.shortage_cost = shortage_cost
         self.level_over_time = []  # Data tracking for inventory level
         self.inventory_cost_over_time = []  # Data tracking for inventory cost
-        self.total_inven_cost = []
         
     def cal_inventory_cost(self):
         if self.level > 0:
@@ -34,6 +33,12 @@ class Inventory:
             self.inventory_cost_over_time.append(0)
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
+    
+    def cal_event_holding_cost(self):
+        for j in range(len(I)):
+            for i in range(SIM_TIME-1):
+                daily_holding_cost = sum(EventHoldingCost[i-1][j])
+            print(f"[Daily holding Cost of {I[j]['NAME']}] {daily_holding_cost}")
 
 
 class Provider:
@@ -93,13 +98,15 @@ class Production:
         self.processing_cost = processing_cost
         self.processing_cost_over_time = []  # Data tracking for processing cost
         self.daily_production_cost = 0
+        self.process_stop_cost = 0
+        
 
     def process(self):
         while True:
             # Check the current state if input materials or WIPs are available
             shortage_check = False
-            for inven in self.input_inventories:
-                if inven.level < 1:
+            for inven, use_count in zip(self.input_inventories, P[self.process_id]["INPUT_USE_COUNT"]):
+                if inven.level < use_count:
                     #inven.level -= 1 #개념적 재고량을 계산할때 필요
                     shortage_check = True
             if shortage_check:
@@ -111,12 +118,14 @@ class Production:
                 yield self.env.timeout(24)  # Check again after 24 hours (1 day)
                 # continue
             else:
+                total_use_count = sum(P[self.process_id]["INPUT_USE_COUNT"]) # Calculate the total number of units in process
+                
                 # Consuming input materials or WIPs and producing output WIP or Product
                 processing_time = 24 / self.production_rate
                 yield self.env.timeout(processing_time)
                 print(f"{self.env.now}: Process {self.process_id} begins")
-                for inven in self.input_inventories:
-                    inven.level -= 1
+                for inven, use_count in zip(self.input_inventories, P[self.process_id]["INPUT_USE_COUNT"]):
+                    inven.level -= use_count
                     print(
                         f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
                     print(
@@ -152,7 +161,8 @@ class Sales:
         self.setup_cost = setup_cost
         self.selling_cost_over_time = []  # Data tracking for selling cost
         self.daily_selling_cost = 0
-
+        self.loss_cost = 0
+        
     def delivery(self, item_id, order_size, product_inventory):
         # Lead time
         yield self.env.timeout(I[item_id]["DUE_DATE"] * 24)
