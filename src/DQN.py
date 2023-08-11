@@ -103,7 +103,7 @@ class DQNAgent:
             state_tensor = torch.FloatTensor(s).to(device)
             next_state_tensor = torch.FloatTensor(next_s).to(device)
             q_values = self.model(state_tensor)
-            next_q_values = self.model(next_state_tensor)
+            next_q_values = self.target_model(next_state_tensor)
             if done:
                 target = r
             else:
@@ -111,9 +111,9 @@ class DQNAgent:
             if type(a) == list:
                 for i in range(len(self.action_space)):
                     if self.action_space[i] == a:
-                        q_values[0][i] = target
+                        q_values[i] = target
             else:
-                q_values[0][a] = target
+                q_values[a] = target
             batch_states.append(state_tensor.flatten())
             batch_targets.append(q_values)
 
@@ -169,7 +169,6 @@ def take_action(action_space, action, simpy_env, inventoryList, total_cost_per_d
 
     # Calculate the next state after the actions are taken
     next_state = np.array([inven.level for inven in inventoryList])
-    next_state = next_state.reshape(1, len(inventoryList))
 
     # Calculate the reward and whether the simulation is done
     # You need to define this function based on your specific reward policy

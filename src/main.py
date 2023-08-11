@@ -25,7 +25,6 @@ def main():
     state = np.array([inven.level for inven in inventoryList]
                      )  # Get the inventory levels
     state_size = len(inventoryList)  # Number of inventories
-    state = state.reshape(1, state_size)
     agent = DQNAgent(state_size, action_space, discount_factor,
                      epsilon_greedy, epsilon_min, epsilon_decay,
                      learning_rate, max_memory_size, target_update_frequency)
