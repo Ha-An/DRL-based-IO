@@ -2,7 +2,7 @@
 # ID: Index of the element in the dictionary
 # TYPE: Product, Raw Material, WIP;
 # NAME: Item's name or model;
-# INIT_LEVEL: Initial inventory level [units] 
+# INIT_LEVEL: Initial inventory level [units]
 # CUST_ORDER_CYCLE: Customer ordering cycle [days]
 # MANU_ORDER_CYCLE: Manufacturer ordering cycle to providers [days]
 # DEMAND_QUANTITY: Demand quantity for the final product [units]
@@ -36,14 +36,24 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]],             "OUTPU
 
 Ver_print = False
 # Simulation
-SIM_TIME = 30# [days]
-INITIAL_INVENTORY = 30 # [units]
+SIM_TIME = 30  # [days]
+INITIAL_INVENTORY = 500  # [units]
 total_cost_per_day = []
-EPISODES = 2
+EPISODES = 100
 batch_size = 32
 action_space = []
-values = [0, 20, 40]
+values = [0, 10, 20]
 for i in values:
     for j in values:
         for k in values:
             action_space.append([i, j, k])
+
+# hyper parameter DQN
+
+discount_factor = 1
+epsilon_greedy = 1.0
+epsilon_min = 0.01
+epsilon_decay = 0.99995
+learning_rate = 0.001
+max_memory_size = 2000
+target_update_frequency = 300

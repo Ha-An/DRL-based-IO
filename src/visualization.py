@@ -7,7 +7,7 @@ class visualization:
     def __init__(self, inventory, item_name):
         self.inventory = inventory
         self.item_name = item_name
- 
+
     def inventory_level_graph(self):
         sns.set(style="darkgrid")
         plt.figure(figsize=(10, 6))

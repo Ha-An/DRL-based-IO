@@ -4,6 +4,7 @@ from config import *
 import random
 import visualization
 
+
 class Inventory:
     def __init__(self, env, item_id, holding_cost, shortage_cost, initial_level):
         self.item_id = item_id  # 0: product; others: WIP or raw material
@@ -213,7 +214,7 @@ def calculate_inventory_cost():
 
 
 def create_env(I, P):
-    simpy_env = simpy.Environment() 
+    simpy_env = simpy.Environment()
 
     # Create an inventory for each item
     inventoryList = []
@@ -256,6 +257,7 @@ def create_env(I, P):
 
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, providerList
 
+
 def reset_env(inventoryList, procurementList, productionList, sales, customer, providerList):
     simpy_env = simpy.Environment()  # 환경초기화
 
@@ -268,10 +270,11 @@ def reset_env(inventoryList, procurementList, productionList, sales, customer, p
     for production in productionList:
         simpy_env.process(production.process())
     for i in range(len(providerList)):
-        simpy_env.process(procurementList[i].order(providerList[i], inventoryList[providerList[i].item_id]))
+        simpy_env.process(procurementList[i].order(
+            providerList[i], inventoryList[providerList[i].item_id]))
     state = np.array([inven.level for inven in inventoryList]
-                        )  # Get the initial inventory levels
-    state = state.reshape(1, len(inventoryList))  
+                     )  # Get the initial inventory levels
+    state = state.reshape(1, len(inventoryList))
 
     return simpy_env, state
 
