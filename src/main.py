@@ -37,7 +37,8 @@ def main():
                 if i != 0:
                     if Ver_print:
                         print("day", i/24)
-
+                    
+                    # inven.cal_event_holding_cost
                     env.cal_cost(inventoryList, procurementList,
                                  productionList, sales, total_cost_per_day)
 

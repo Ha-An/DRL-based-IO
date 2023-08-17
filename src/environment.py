@@ -23,6 +23,10 @@ class Inventory:
         self.level_over_time = []  # Data tracking for inventory level
         self.inventory_cost_over_time = []  # Data tracking for inventory cost
         self.total_inven_cost = []
+        self.daily_holding_cost = 0
+        self.daily_holding_cost_total = 0
+
+        
 
     def cal_inventory_cost(self):
         if self.level > 0:
@@ -35,17 +39,22 @@ class Inventory:
             self.inventory_cost_over_time.append(0)
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
-
+    
     def cal_event_holding_cost(self):
+        
         for j in range(len(I)):
-            for i in range(SIM_TIME-1):
-                daily_holding_cost = sum(EventHoldingCost[i-1][j])
-                print(EventHoldingCost[i-1][j])
-            print(f"[Daily holding Cost of {I[j]['NAME']}] {daily_holding_cost}") 
-    '''        
-    def cal_daily_holding_cost(self):
-        daily_holding_cost +=  
-    '''
+            daily_holding_cost_total = 0
+            for i in range(SIM_TIME*24 + 24):
+                if i % 24 == 0 and i != 0:
+                    self.daily_holding_cost = sum(EventHoldingCost[i//24-1][j])
+                    daily_holding_cost_total += self.daily_holding_cost
+                    print(EventHoldingCost[i//24-1][j])
+                    print(
+                        f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}") # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)      
+            print(
+                f"[Total holding Cost of {I[j]['NAME']}] {daily_holding_cost_total}")  # 시작한 시간부터 지금까지의 총 holding cost
+       
+                   
 
 class Provider:
     def __init__(self, env, name, item_id):
@@ -124,6 +133,12 @@ class Production:
                         f"{self.env.now}: Stop {self.name} due to a shortage of input materials or WIPs")
                     print(
                         f"{self.env.now}: Process stop cost : {self.process_stop_cost}")
+                EventHoldingCost[int(self.env.now/24)][inven.item_id].append(
+                    round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate), 2))
+                #EventHoldingCost[int(self.env.now/24)][-1].append(round(
+                    #(self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
+                EventHoldingCost[int(self.env.now/24)][0].append(round(
+                    (self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
                 # Check again after 24 hours (1 day)
                 yield self.env.timeout(24)
                 # continue
@@ -155,8 +170,8 @@ class Production:
                     print(
                         f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2)}")
 
-                EventHoldingCost[int(self.env.now/24)][-1].append(round(
-                    (self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
+                #EventHoldingCost[int(self.env.now/24)][-1].append(round(
+                    #(self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
                 EventHoldingCost[int(self.env.now/24)][0].append(round(
                     (self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
 
