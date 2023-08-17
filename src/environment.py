@@ -40,8 +40,12 @@ class Inventory:
         for j in range(len(I)):
             for i in range(SIM_TIME-1):
                 daily_holding_cost = sum(EventHoldingCost[i-1][j])
-            print(f"[Daily holding Cost of {I[j]['NAME']}] {daily_holding_cost}")  
-
+                print(EventHoldingCost[i-1][j])
+            print(f"[Daily holding Cost of {I[j]['NAME']}] {daily_holding_cost}") 
+    '''        
+    def cal_daily_holding_cost(self):
+        daily_holding_cost +=  
+    '''
 
 class Provider:
     def __init__(self, env, name, item_id):
@@ -114,8 +118,12 @@ class Production:
                     # inven.level -= 1 #개념적 재고량을 계산할때 필요
                     shortage_check = True
             if shortage_check:
-                print(
-                    f"{self.env.now}: Stop {self.name} due to a shortage of input materials or WIPs")
+                self.process_stop_cost += P[self.process_id]["PRO_STOP_COST"]
+                if Ver_simulation:
+                    print(
+                        f"{self.env.now}: Stop {self.name} due to a shortage of input materials or WIPs")
+                    print(
+                        f"{self.env.now}: Process stop cost : {self.process_stop_cost}")
                 # Check again after 24 hours (1 day)
                 yield self.env.timeout(24)
                 # continue
@@ -125,17 +133,32 @@ class Production:
                 # Consuming input materials or WIPs and producing output WIP or Product
                 processing_time = 24 / self.production_rate
                 yield self.env.timeout(processing_time)
-                print(f"{self.env.now}: Process {self.process_id} begins")
-                for inven in self.input_inventories:
-                    inven.level -= 1
-                    print(
-                        f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
+                if Ver_simulation:
+                    print(f"{self.env.now}: Process {self.process_id} begins")
+                for inven, use_count in zip(self.input_inventories, P[self.process_id]["INPUT_USE_COUNT"]):
+                    inven.level -= use_count
+                    if Ver_simulation:
+                        print(
+                            f"{self.env.now}: Inventory level of {I[inven.item_id]['NAME']}: {inven.level}")
+                        print(
+                            f"{self.env.now}: Holding cost of {I[inven.item_id]['NAME']}: {round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate),2)}")
+                    EventHoldingCost[int(self.env.now/24)][inven.item_id].append(
+                        round((inven.level*I[inven.item_id]['HOLD_COST']/24*self.production_rate), 2))
+
                 self.output_inventory.level += 1
                 self.cal_processing_cost(processing_time)
-                print(
-                    f"{self.env.now}: A unit of {self.output['NAME']} has been produced")
-                print(
-                    f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
+                if Ver_simulation:
+                    print(
+                        f"{self.env.now}: A unit of {self.output['NAME']} has been produced")
+                    print(
+                        f"{self.env.now}: Inventory level of {I[self.output_inventory.item_id]['NAME']}: {self.output_inventory.level}")
+                    print(
+                        f"{self.env.now}: Holding cost of {I[self.output_inventory.item_id]['NAME']}: {round((self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate),2)}")
+
+                EventHoldingCost[int(self.env.now/24)][-1].append(round(
+                    (self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
+                EventHoldingCost[int(self.env.now/24)][0].append(round(
+                    (self.output_inventory.level*I[self.output_inventory.item_id]['HOLD_COST']/24*self.production_rate), 2))
 
     def cal_processing_cost(self, processing_time):
         self.daily_production_cost += self.processing_cost * processing_time

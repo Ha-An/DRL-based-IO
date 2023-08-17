@@ -16,11 +16,11 @@
 # SETUP_COST_PRO: Setup cost for the delivery of the products to the customer [$/delivery]
 # SETUP_COST_RAW: Setup cost for the ordering of the raw materials to a supplier [$/order]
 # DELIVERY_COST: Delivery cost of the products [$/unit]
-'''
+
 # Scenario 1
 I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",        "INIT_LEVEL": 7, "CUST_ORDER_CYCLE": 5, "DEMAND_QUANTITY": 30,                                           "HOLD_COST": 5, "SHORTAGE_COST": 10,                     "SETUP_COST_PRO": 50, "DELIVERY_COST": 10, "DUE_DATE": 5, "BACKORDER_COST": 5},
      1: {"ID": 1, "TYPE": "Raw Material", "NAME": "RAW MATERIAL 1", "INIT_LEVEL": 5, "MANU_ORDER_CYCLE": 1,                        "SUP_LEAD_TIME": 7, "LOT_SIZE_ORDER": 20, "HOLD_COST": 1, "SHORTAGE_COST": 2, "PURCHASE_COST": 3,  "SETUP_COST_RAW": 20}}
-P = {0: {"ID": 0, "PRODUCTION_RATE": 12, "INPUT_LIST": [I[1]], "INPUT_USE_COUNT": [
+P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]], "INPUT_USE_COUNT": [
     1], "OUTPUT": I[0], "PROCESS_COST": 5, "PRO_STOP_COST": 2}}
 '''
 # Scenario 2
@@ -32,9 +32,9 @@ I = {0: {"ID": 0, "TYPE": "Product",      "NAME": "PRODUCT",          "INIT_LEVE
 
 P = {0: {"ID": 0, "PRODUCTION_RATE": 3, "INPUT_LIST": [I[1]], "INPUT_USE_COUNT": [1], "OUTPUT": I[4], "PROCESS_COST": 5, "PRO_STOP_COST": 2},
      1: {"ID": 1, "PRODUCTION_RATE": 2, "INPUT_LIST": [I[2], I[3], I[4]], "INPUT_USE_COUNT": [1, 1, 1], "OUTPUT": I[0], "PROCESS_COST": 6, "PRO_STOP_COST": 3}}
-
+'''
 # Validation
-Ver_simulation = False
+Ver_simulation = True
 Ver_print = False
 
 COST_VALID = False
@@ -43,7 +43,7 @@ SPECIFIC_HOLDING_COST = False
 EventHoldingCost = []
 
 # Simulation
-SIM_TIME = 20  # [days]
+SIM_TIME = 8  # [days]
 INITIAL_INVENTORY = 100  # [units]
 EPISODES = 1
 total_cost_per_day = []
