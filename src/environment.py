@@ -40,20 +40,29 @@ class Inventory:
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
     
-    def cal_event_holding_cost(self):
+    def cal_event_holding_cost(self,i):
         
+        for j in range(len(I)):
+            daily_holding_cost_total = 0
+            if i % 24 == 0 and i != 0:
+                self.daily_holding_cost = sum(EventHoldingCost[(i-1)//24-1][j])
+                daily_holding_cost_total += self.daily_holding_cost
+                print(EventHoldingCost[(i-1)//24-1][j])
+                print(
+                    f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}") # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)      
+        
+    
+        '''    
         for j in range(len(I)):
             daily_holding_cost_total = 0
             for i in range(SIM_TIME*24 + 24):
                 if i % 24 == 0 and i != 0:
                     self.daily_holding_cost = sum(EventHoldingCost[i//24-1][j])
                     daily_holding_cost_total += self.daily_holding_cost
-                    print(EventHoldingCost[i//24-1][j])
+                    #print(EventHoldingCost[i//24-1][j])
                     print(
                         f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}") # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)      
-            print(
-                f"[Total holding Cost of {I[j]['NAME']}] {daily_holding_cost_total}")  # 시작한 시간부터 지금까지의 총 holding cost
-       
+        '''   
                    
 
 class Provider:
@@ -335,7 +344,7 @@ def create_env(I, P):
 
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, providerList 
  
-def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day):
+def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day,i):
     # Calculate the cost models
     for inven in inventoryList:
         inven.cal_inventory_cost()
@@ -344,7 +353,8 @@ def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_p
     for procurement in procurementList:
         procurement.cal_daily_procurement_cost()
     sales.cal_daily_selling_cost()
-    inven.cal_event_holding_cost()
+    inven.cal_event_holding_cost(i)
+    
     # Calculate the total cost for the current day and append to the list
     total_cost = 0
     for inven in inventoryList:

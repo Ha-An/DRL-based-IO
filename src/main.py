@@ -40,7 +40,8 @@ def main():
                     
                     # inven.cal_event_holding_cost
                     env.cal_cost(inventoryList, procurementList,
-                                 productionList, sales, total_cost_per_day)
+                                 productionList, sales, total_cost_per_day,i)
+                    
 
                     action = agent.choose_action(state)
                     next_state, reward, done = agent.take_action(
