@@ -29,6 +29,7 @@ def main():
                      learning_rate, max_memory_size, target_update_frequency)
     done = (simpy_env.now >= SIM_TIME * 24)
     total_rewards, losses = [], []
+    actiongraph_list = []
     total_reward = 0
     for episode in range(EPISODES):
         for i in range(SIM_TIME*24+24):
@@ -37,12 +38,17 @@ def main():
                 if i != 0:
                     if Ver_print:
                         print("day", i/24)
-                    
+
                     # inven.cal_event_holding_cost
                     env.cal_cost(inventoryList, procurementList,
-                                 productionList, sales, total_cost_per_day)
+                                 productionList, sales, total_cost_per_day,i)
 
-                    action = agent.choose_action(state)
+                    action, actionlist, q_valuelist = agent.choose_action(
+                        state)
+                    if actionlist != 0:
+                        actiongraph = visualization.collect_action(
+                            state, actionlist, q_valuelist)
+
                     next_state, reward, done = agent.take_action(
                         action_space, action, simpy_env, inventoryList, total_cost_per_day, I)
                     agent.remember(Transition(
@@ -57,6 +63,8 @@ def main():
                         losses.append(loss)
 
                     total_reward += reward
+                    if actionlist != 0:
+                        actiongraph_list.append(actiongraph)
 
                     if done:
                         if Ver_print:
@@ -80,10 +88,10 @@ def main():
                     print(
                         f"[{I[inven.item_id]['NAME']}]  {inven.level}")
 
-    '''
+    print(actiongraph_list)
     print(total_rewards)
     visualization.plot_learning_history(total_rewards)
-    '''
+
     '''
     # Visualize the data trackers of the inventory level and cost over time
     for i in I.keys():
@@ -92,6 +100,39 @@ def main():
         inventory_visualization.inventory_level_graph()
         inventory_visualization.inventory_cost_graph()
         # calculate_inventory_cost()
+    '''
+
+    '''
+    # Visualize the data trackers of the inventory level and cost over time
+    for i in I.keys():
+        inventory_visualization = visualization.visualization(
+            inventoryList[i], I[i]['NAME'])
+        inventory_visualization.inventory_level_graph()
+        inventory_visualization.inventory_cost_graph()
+        # calculate_inventory_cost()
+    '''
+    '''
+    if SPECIFIC_HOLDING_COST:
+        print(EventHoldingCost)
+    
+    #visualization
+    if VISUAL :
+        cost_list=[]#inventory_cost by id   id -> day 순으로 리스트 생성  전체 id 별로 저장되어 있는 list
+        level_list=[]#inventory_level by id
+        item_name_list=[]
+        total_cost_per_day = env.cal_cost(inventoryList, productionList, procurementList,sales)
+        total_cost_list = total_cost_per_day
+        for i in I.keys():
+            temp1=[]
+            temp2=[]
+            inventory_visualization = visualization.visualization(
+                inventoryList[i])
+            temp1,temp2=inventory_visualization.return_list()
+            level_list.append(temp1)
+            cost_list.append(temp2)
+            item_name_list.append(I[i]['NAME'])
+        inventory_visualization = visualization.visualization(None) # 필요하지 않으므로 None
+        inventory_visualization.plot_inventory_graphs(level_list, cost_list,total_cost_list,item_name_list)
     '''
 
 

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
 import numpy as np
 
@@ -39,6 +40,13 @@ class visualization:
         plt.xlabel('Episodes', size=20)
         plt.ylabel('# Total Rewards', size=20)
         plt.show()
+
+    def collect_action(state, actionlist, q_valuelist):
+        temp = []
+        temp.append(state)
+        temp.append(actionlist)
+        temp.append(q_valuelist)
+        return temp
 
 
 '''

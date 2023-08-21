@@ -103,12 +103,17 @@ class DQNAgent:
                 self.epsilon *= self.epsilon_decay
 
     def choose_action(self, state):
+
         if np.random.rand() <= self.epsilon:
-            return random.choice(self.action_space)
+            return random.choice(self.action_space), 0, 0
         else:
             q_values = self.q(torch.FloatTensor(state).to(device))
-            # print(q_values.argmax())
-            return q_values.argmax()
+            actionlist = q_values.argmax()
+            actionlist = actionlist.detach().cpu().numpy()
+            q_valuelist = q_values.max()
+            q_valuelist = q_valuelist.detach().cpu().numpy()
+            q_valuelist.tolist()
+            return q_values.argmax(), actionlist.tolist(), q_valuelist.tolist()
 
         # action_idx = np.argmax(q_values)
         # return self.action_space[action_idx]
@@ -142,7 +147,7 @@ class DQNAgent:
 
         # Calculate the next state after the actions are taken
         next_state = np.array([inven.level for inven in inventoryList])
-        #next_state = next_state.reshape(1, len(inventoryList))
+        # next_state = next_state.reshape(1, len(inventoryList))
 
         # Calculate the reward and whether the simulation is done
         # You need to define this function based on your specific reward policy

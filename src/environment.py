@@ -40,20 +40,16 @@ class Inventory:
         print(
             f"[Inventory Cost of {I[self.item_id]['NAME']}]  {self.inventory_cost_over_time[-1]}")
     
-    def cal_event_holding_cost(self):
+    def cal_event_holding_cost(self,i):
         
         for j in range(len(I)):
             daily_holding_cost_total = 0
-            for i in range(SIM_TIME*24 + 24):
-                if i % 24 == 0 and i != 0:
-                    self.daily_holding_cost = sum(EventHoldingCost[i//24-1][j])
-                    daily_holding_cost_total += self.daily_holding_cost
-                    print(EventHoldingCost[i//24-1][j])
-                    print(
-                        f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}") # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)      
-            print(
-                f"[Total holding Cost of {I[j]['NAME']}] {daily_holding_cost_total}")  # 시작한 시간부터 지금까지의 총 holding cost
-       
+            if i % 24 == 0 and i != 0:
+                self.daily_holding_cost = sum(EventHoldingCost[(i-1)//24-1][j])
+                daily_holding_cost_total += self.daily_holding_cost
+                print(EventHoldingCost[(i-1)//24-1][j])
+                print(
+                    f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}")  # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)
                    
 
 class Provider:
@@ -194,7 +190,7 @@ class Sales:
         self.selling_cost_over_time = []  # Data tracking for selling cost
         self.daily_selling_cost = 0
         self.loss_cost = 0
-        self.num_shortages = 0
+        self.num_backorder = 0
 
     def delivery(self, item_id, order_size, product_inventory):
         # Lead time
@@ -205,7 +201,7 @@ class Sales:
                 inventory_level = 0
             else:
                 inventory_level = product_inventory.level
-            self.num_shortages += abs(inventory_level - order_size)
+            self.num_backorder += abs(inventory_level - order_size)  # num_backorder : number of product unabled to deliver
             if product_inventory.level > 0:
                 if Ver_simulation:
                     print(
@@ -213,22 +209,22 @@ class Sales:
                 # yield self.env.timeout(DELIVERY_TIME)
                 product_inventory.level -= order_size
                 self.cal_selling_cost()
-            self.loss_cost = I[item_id]["BACKORDER_COST"] * self.num_shortages
+            self.loss_cost = I[item_id]["BACKORDER_COST"] * self.num_backorder
             print(
                 f"[Cost of Loss] {self.loss_cost}")
-            print(f"[Shortage] {self.num_shortages}")
+            print(f"[Backorder] {self.num_backorder}")
             print(
-                f"{self.env.now}: Unable to deliver {self.num_shortages} units to the customer due to product shortage")
+                f"{self.env.now}: Unable to deliver {self.num_backorder} units to the customer due to product shortage")
             # Check again after 24 hours (1 day)
             # yield self.env.timeout(24)
         # Delivering products to the customer
         else:
-            product_inventory.level -= order_size + self.num_shortages
+            product_inventory.level -= order_size + self.num_backorder
             if Ver_simulation:
                 print(
-                    f"{self.env.now}: {order_size + self.num_shortages}) units of the product have been delivered to the customer")
+                    f"{self.env.now}: {order_size + self.num_backorder}) units of the product have been delivered to the customer")
             self.cal_selling_cost()
-        self.num_shortages = 0
+        self.num_backorder = 0
 
     def cal_selling_cost(self):
         self.daily_selling_cost += self.delivery_cost * \
@@ -335,7 +331,7 @@ def create_env(I, P):
 
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, providerList 
  
-def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day):
+def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_per_day,i):
     # Calculate the cost models
     for inven in inventoryList:
         inven.cal_inventory_cost()
@@ -344,7 +340,7 @@ def cal_cost(inventoryList, procurementList, productionList, sales, total_cost_p
     for procurement in procurementList:
         procurement.cal_daily_procurement_cost()
     sales.cal_daily_selling_cost()
-    inven.cal_event_holding_cost()
+    inven.cal_event_holding_cost(i)
     # Calculate the total cost for the current day and append to the list
     total_cost = 0
     for inven in inventoryList:
