@@ -43,9 +43,9 @@ SPECIFIC_HOLDING_COST = False
 EventHoldingCost = []
 
 # Simulation
-SIM_TIME = 200  # [days]
+SIM_TIME = 100  # [days]
 INITIAL_INVENTORY = 100  # [units]
-EPISODES = 12
+EPISODES = 50
 total_cost_per_day = []
 batch_size = 32
 action_space = [[0], [10], [20]]

@@ -46,14 +46,24 @@ class visualization:
 
         fig = plt.figure(figsize=(9, 6))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot(raw_material, product, q_valuelist)
+        ax.plot(raw_material, product, action)
 
         # 축 레이블 설정
         ax.set_xlabel('RawMaterial')
         ax.set_ylabel('Product')
-        ax.set_zlabel('q_value')
+        ax.set_zlabel('Action')
 
         # 그래프 표시
+        plt.show()
+
+        fig2 = plt.figure(figsize=(9, 6))
+        ax2 = fig2.add_subplot(111, projection='3d')
+        ax2.plot(raw_material, product, q_valuelist)
+
+        # 축 레이블 설정
+        ax2.set_xlabel('RawMaterial')
+        ax2.set_ylabel('Product')
+        ax2.set_zlabel('q(s,a)')
         plt.show()
 
 
