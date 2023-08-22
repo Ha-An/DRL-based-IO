@@ -4,6 +4,8 @@ import random
 from visualization import *
 from config import *
 from DQN import *
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 
 def main():
@@ -31,6 +33,7 @@ def main():
     total_rewards, losses = [], []
     actiongraph_list = []
     total_reward = 0
+    visual = visualization()
     for episode in range(EPISODES):
         for i in range(SIM_TIME*24+24):
             # Print the inventory level every 24 hours (1 day)
@@ -45,8 +48,8 @@ def main():
                     action, actionlist, q_valuelist = agent.choose_action(
                         state)
                     if actionlist != 0:
-                        actiongraph = visualization.collect_action(
-                            state, actionlist, q_valuelist)
+                        actiongraph_list.append(visual.collect_action(
+                            state, actionlist, q_valuelist))
 
                     next_state, reward, done = agent.take_action(
                         action_space, action, simpy_env, inventoryList, total_cost_per_day, I)
@@ -63,7 +66,7 @@ def main():
 
                     total_reward += reward
                     if actionlist != 0:
-                        actiongraph_list.append(actiongraph)
+                        actiongraph_list.append(actiongraph_list)
 
                     if done:
                         if Ver_print:
@@ -80,7 +83,6 @@ def main():
                         break
 
     # Print the inventory level
-
                 print(f"\nDAY {int(i/24)+1}")
                 for inven in inventoryList:
                     inven.level_over_time.append(inven.level)
@@ -89,7 +91,8 @@ def main():
 
     print(actiongraph_list)
     print(total_rewards)
-    visualization.plot_learning_history(total_rewards)
+    visual.learning_process(actiongraph_list)
+    # visualization.plot_learning_history(total_rewards)
 
     '''
     # Visualize the data trackers of the inventory level and cost over time

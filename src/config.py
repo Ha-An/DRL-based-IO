@@ -43,18 +43,19 @@ SPECIFIC_HOLDING_COST = False
 EventHoldingCost = []
 
 # Simulation
-SIM_TIME = 10  # [days]
+SIM_TIME = 200  # [days]
 INITIAL_INVENTORY = 100  # [units]
-EPISODES = 1
+EPISODES = 12
 total_cost_per_day = []
 batch_size = 32
-action_space = []
+action_space = [[0], [10], [20]]
+'''
 values = [0, 10, 20]
 for i in values:
     for j in values:
         for k in values:
             action_space.append([i, j, k])
-
+'''
 # hyper parameter DQN
 discount_factor = 0.98
 epsilon_greedy = 1.0

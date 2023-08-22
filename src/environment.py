@@ -47,7 +47,6 @@ class Inventory:
             if i % 24 == 0 and i != 0:
                 self.daily_holding_cost = sum(EventHoldingCost[(i-1)//24-1][j])
                 daily_holding_cost_total += self.daily_holding_cost
-                print(EventHoldingCost[(i-1)//24-1][j])
                 print(
                     f"[Daily holding Cost of {I[j]['NAME']}] {self.daily_holding_cost}") # 날마다 앞선 날의 holding cost를 표시 (예. day1의 holding cost를 day2시작에 표시)      
         

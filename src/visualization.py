@@ -5,10 +5,59 @@ import numpy as np
 
 
 class visualization:
-    def __init__(self, inventory, item_name):
+    def __init__(self):
+        '''
         self.inventory = inventory
         self.item_name = item_name
+        '''
 
+    def collect_action(self, state, actionlist, q_valuelist):
+        temp = []
+        temp.append(state[0])
+        temp.append(state[1])
+        temp.append(actionlist)
+        temp.append(q_valuelist)
+        return temp
+
+    def learning_process(self, data):
+        raw_material = np.zeros((len(data)))
+        product = np.zeros((len(data)))
+        action = np.zeros((len(data)))
+        q_valuelist = np.zeros((len(data)))
+
+        for x in range(len(data)):
+
+            if type(data[x][0]) == list:
+                pass
+            else:
+                raw_material[x] = data[x][0]
+            if type(data[x][0]) == list:
+                pass
+            else:
+                product[x] = data[x][1]
+            if type(data[x][0]) == list:
+                pass
+            else:
+                action[x] = data[x][2]
+            if type(data[x][0]) == list:
+                pass
+            else:
+                q_valuelist[x] = data[x][-1]
+
+        fig = plt.figure(figsize=(9, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(raw_material, product, q_valuelist)
+
+        # 축 레이블 설정
+        ax.set_xlabel('RawMaterial')
+        ax.set_ylabel('Product')
+        ax.set_zlabel('q_value')
+
+        # 그래프 표시
+        plt.show()
+
+
+'''
     def inventory_level_graph(self):
         sns.set(style="darkgrid")
         plt.figure(figsize=(10, 6))
@@ -40,13 +89,7 @@ class visualization:
         plt.xlabel('Episodes', size=20)
         plt.ylabel('# Total Rewards', size=20)
         plt.show()
-
-    def collect_action(state, actionlist, q_valuelist):
-        temp = []
-        temp.append(state)
-        temp.append(actionlist)
-        temp.append(q_valuelist)
-        return temp
+'''
 
 
 '''
