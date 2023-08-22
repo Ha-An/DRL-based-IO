@@ -41,8 +41,7 @@ def main():
 
                     # inven.cal_event_holding_cost
                     env.cal_cost(inventoryList, procurementList,
-                                 productionList, sales, total_cost_per_day,i)
-
+                                 productionList, sales, total_cost_per_day, i)
                     action, actionlist, q_valuelist = agent.choose_action(
                         state)
                     if actionlist != 0:
