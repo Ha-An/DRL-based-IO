@@ -50,6 +50,7 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.q.parameters(), lr=self.lr)
         # self.q_target.eval()   # target network는 학습하지 않으므로 evaluation 모드로 설정
         self.q_target.load_state_dict(self.q.state_dict())
+        return self.q
 
     def _design_neural_network(self):
         model = nn.Sequential()

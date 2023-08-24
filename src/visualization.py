@@ -11,19 +11,17 @@ class visualization:
         self.item_name = item_name
         '''
 
-    def collect_action(self, state, actionlist, q_valuelist):
+    def collect_action(self, state):
         temp = []
         temp.append(state[0])
         temp.append(state[1])
-        temp.append(actionlist)
-        temp.append(q_valuelist)
         return temp
 
     def learning_process(self, data):
         raw_material = np.zeros((len(data)))
         product = np.zeros((len(data)))
-        action = np.zeros((len(data)))
-        q_valuelist = np.zeros((len(data)))
+        #action = np.zeros((len(data)))
+        #q_valuelist = np.zeros((len(data)))
 
         for x in range(len(data)):
 
@@ -35,6 +33,7 @@ class visualization:
                 pass
             else:
                 product[x] = data[x][1]
+            '''
             if type(data[x][0]) == list:
                 pass
             else:
@@ -43,10 +42,11 @@ class visualization:
                 pass
             else:
                 q_valuelist[x] = data[x][-1]
+            '''
 
         fig = plt.figure(figsize=(9, 6))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot(raw_material, product, action)
+        ax.plot(raw_material, product, action, 'g*', alpha=0.9)
 
         # 축 레이블 설정
         ax.set_xlabel('RawMaterial')
@@ -58,7 +58,7 @@ class visualization:
 
         fig2 = plt.figure(figsize=(9, 6))
         ax2 = fig2.add_subplot(111, projection='3d')
-        ax2.plot(raw_material, product, q_valuelist)
+        ax2.plot(raw_material, product, q_valuelist, 'g*', alpha=0.9)
 
         # 축 레이블 설정
         ax2.set_xlabel('RawMaterial')
