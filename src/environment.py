@@ -89,7 +89,9 @@ class Procurement:
             # THIS WILL BE AN ACTION OF THE AGENT
             # order_size = I[self.item_id]["LOT_SIZE_ORDER"]
             # order_size = agent.choose_action_tmp(inventory)
-            order_size = random.choice(I[self.item_id]["LOT_SIZE_ORDER"])
+            # order_size = random.choice(I[self.item_id]["LOT_SIZE_ORDER"])
+            order_size = I[self.item_id]["LOT_SIZE_ORDER"]
+
             daily_events.append(
                 f"{self.env.now}: Placed an order for {order_size} units of {I[self.item_id]['NAME']}")
             self.env.process(provider.deliver(
@@ -174,7 +176,8 @@ class Sales:
         # self.loss_cost = 0
 
     def _cal_selling_cost(self, demand_size, daily_events):
-        self.daily_selling_cost += self.unit_delivery_cost * demand_size + self.setup_cost
+        self.daily_selling_cost += self.unit_delivery_cost * \
+            demand_size + self.unit_setup_cost
         daily_events.append(
             f"{self.env.now}: Daily selling cost of {I[self.item_id]['NAME']} has been updated: {self.daily_selling_cost}")
 
@@ -183,13 +186,13 @@ class Sales:
         yield self.env.timeout(self.due_date * 24)
         # BACKORDER: Check if products are available
         if product_inventory.current_level < demand_size:
-            num_shortages = abs(product_inventory.level - demand_size)
+            num_shortages = abs(product_inventory.current_level - demand_size)
             if product_inventory.current_level > 0:
                 daily_events.append(
                     f"{self.env.now}: {product_inventory.current_level} units of the product have been delivered to the customer")
                 # yield self.env.timeout(DELIVERY_TIME)
                 product_inventory.current_level -= demand_size
-                self._cal_selling_cost()
+                self._cal_selling_cost(demand_size, daily_events)
             self.loss_cost = I[item_id]["BACKORDER_COST"] * num_shortages
             daily_events.append(f"[Cost of Loss] {self.loss_cost}")
             daily_events.append(
