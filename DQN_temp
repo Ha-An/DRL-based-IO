@@ -1,0 +1,71 @@
+import environment as env
+import numpy as np
+import random
+from visualization import *
+from config import *
+import gym
+from stable_baselines3 import DQN
+import gym
+
+ # 원하는 환경을 선택합니다.
+class CustomWrapper(Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def step(self, action):
+        # 원하는 변형을 적용한 후 원래 환경의 step() 메서드를 호출
+        observation, reward, done, info = self.env.step(action)
+        # 변형된 관측이나 보상을 반환
+        return observation, reward, done, info
+
+def main():
+    # 코드에 들어가는 옵션값
+    total_cost_per_day = []
+    daily_events=[]
+    # Initialize the simulation environment
+    
+    total_reward = 0  # 리워드 초기화
+    simpy_env, inventoryList, procurementList, productionList, sales, customer, providerList, daily_events = env.create_env(
+        I, P, daily_events)
+    simpy_env = CustomWrapper(env)
+    # Initialize the DQN agent
+    state = np.array([inven.current_level for inven in inventoryList]
+                     )  # Get the inventory levels
+    state_size = len(inventoryList)  # Number of inventories
+
+    episode_done = False
+    
+   
+
+    # Print the list of items and processes
+    print("\nItem list")
+    for i in I.keys():
+        print(f"ITEM {i}: {I[i]['NAME']}")
+    print("\nProcess list")
+    for i in P.keys():
+        print(f"Output of PROCESS {i}: {P[i]['OUTPUT']['NAME']}")
+    print("Number of Inventories: ", len(inventoryList))
+    print("Number of Providers: ", len(providerList))
+
+    
+    model = DQN('MlpPolicy', simpy_env, verbose=1)
+    total_cost = 0
+    for episode in range(EPISODES):
+        env.main(daily_events)
+       
+
+        '''
+        if PRINT_DQN:
+            print(
+                "_________________________________________________________done")
+        '''
+        total_rewards.append(total_reward)
+        print(f'Episode: {episode}/{EPISODES}, Total Reward: {total_reward}, Eps: {agent.epsilon:.2f}, Loss: {np.mean(losses):.5f}, Memory: {len(agent.memory)}')
+
+    print(total_rewards)
+    visualization.plot_learning_history(total_rewards)
+
+
+
+if __name__ == "__main__":
+    main()
