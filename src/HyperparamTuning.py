@@ -14,10 +14,10 @@ def tuning_hyperparam(env, trial):
     # Initialize the environment
     env.reset()
     # Define search space for hyperparameters
-    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1)
-    gamma = trial.suggest_float('gamma', 0.9, 0.9999, log=True)
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1)  #학습률 속도 결정 
+    gamma = trial.suggest_float('gamma', 0.9, 0.9999, log=True)  #discount factor 결정 
     batch_size = trial.suggest_categorical(
-        'batch_size', [16, 32, 64, 128, 256])
+        'batch_size', [16, 32, 64, 128, 256])  
     # Define the RL model
     if RL_ALGORITHM == "DQN":
         model = DQN("MlpPolicy", env, learning_rate=learning_rate,
@@ -31,14 +31,14 @@ def tuning_hyperparam(env, trial):
     # Train the model
     model.learn(total_timesteps=SIM_TIME*N_EPISODES)
     # Evaluate the model
-    eval_env = GymInterface()
+    eval_env = GymInterface()  #평가를 위한 새로운 환경 설정 
     mean_reward, _ = evaluate_policy(
         model, eval_env, n_eval_episodes=N_EVAL_EPISODES)
 
-    return -mean_reward  # Minimize the negative of mean reward
+    return -mean_reward  # Minimize the negative of mean reward   # 최소화를 하기위해 음수로 반환 
 
 
-def run_optuna(env):
+def run_optuna(env):  #최적의 하이퍼파라미터를 찾아주는 라이브러리  핵심개념 = study
     study = optuna.create_study()
     study.optimize(env, tuning_hyperparam, n_trials=N_TRIALS)
 

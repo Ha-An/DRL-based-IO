@@ -104,8 +104,8 @@ INVEN_LEVEL_MAX = 50  # Capacity limit of the inventory [units]
 STATE_DEMAND = True  # True: Demand quantity is included in the state space
 
 # Simulation
-N_EPISODES = 1000  # 3000
-SIM_TIME = 100  # 200 [days] per episode
+N_EPISODES = 100  # 3000
+SIM_TIME = 50  # 200 [days] per episode
 INIT_LEVEL = 10  # Initial inventory level [units]
 
 # Uncertainty factors
@@ -121,7 +121,7 @@ REORDER_LEVEL = 10
 BEST_PARAMS = {'learning_rate': 0.00012381151768747168,
                'gamma':  0.01, 'batch_size': 256}
 
-# Hyperparameter optimization
+# Hyperparameter optimization #하이퍼 파라미터 최적화 선택
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 50  # 50
 N_EVAL_EPISODES = 100  # 100
