@@ -1,135 +1,39 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
+from config_SimPy import *
 
 
-class visualization:
-    def __init__(self, inventory, item_name):
-        self.inventory = inventory
-        self.item_name = item_name
+def visualization(export_Daily_Report, i):
+    Visual_Dict = {
+        'Material': [],
+        'WIP': [],
+        'Product': [],
+        'Keys': {'Material': [], 'WIP': [], 'Product': []}
+    }
+    Key = ['Material', 'WIP', 'Product']
 
-    def inventory_level_graph(self):
-        sns.set(style="darkgrid")
-        plt.figure(figsize=(10, 6))
-        plt.plot(self.inventory.level_over_time, label='inventory_level')
-        plt.xlabel('time[days]')
-        plt.ylabel('inventory')
-        plt.title(f'{self.item_name} inventory_level')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+    for id in I.keys():
+        temp = []
+        for x in range(SIM_TIME):
+            temp.append(export_Daily_Report[id * SIM_TIME + x][6])
+        Visual_Dict[export_Daily_Report[id * SIM_TIME + x][2]].append(temp)
+        Visual_Dict['Keys'][export_Daily_Report[id * SIM_TIME + x]
+                            [2]].append(export_Daily_Report[id * SIM_TIME + x][1])
 
-    def inventory_cost_graph(self):
-        sns.set(style="darkgrid")
-        plt.figure(figsize=(10, 6))
-        plt.plot(self.inventory.cost_over_time, label='inventory_cost')
-        plt.xlabel('time[days]')
-        plt.ylabel('inventory_cost')
-        plt.title(f'{self.item_name} inventory_cost')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-    def plot_hist_total_reward(history):
-        fig = plt.figure(1, figsize=(14, 5))
-        ax = fig.add_subplot(1, 1, 1)
-        plt.plot(history, lw=4,
-                 marker='o', markersize=10)
-        ax.tick_params(axis='both', which='major', labelsize=15)
-        plt.xlabel('Episodes', size=20)
-        plt.ylabel('Total Rewards', size=20)
-        plt.show()
-
-    def plot_loss(history):
-        fig = plt.figure(2, figsize=(14, 5))
-        ax = fig.add_subplot(1, 1, 1)
-        plt.plot(history, lw=4,
-                 marker='o', markersize=10)
-        ax.tick_params(axis='both', which='major', labelsize=15)
-        plt.xlabel('Episodes', size=20)
-        plt.ylabel('Loss', size=20)
-        plt.show()
-
-    def plot_hist_and_loss(reward_history, loss_history):
-        # Create 1 row, 2 columns of subplots
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-
-        # Plot total reward history
-        ax1.plot(reward_history, lw=4, marker='o', markersize=10)
-        ax1.tick_params(axis='both', which='major', labelsize=15)
-        ax1.set_xlabel('Episodes', size=20)
-        ax1.set_ylabel('Total Rewards', size=20)
-
-        # Plot loss history
-        ax2.plot(loss_history, lw=4, marker='o', markersize=10)
-        ax2.tick_params(axis='both', which='major', labelsize=15)
-        ax2.set_xlabel('Episodes', size=20)
-        ax2.set_ylabel('Loss', size=20)
-
-        plt.tight_layout()  # Adjust the layout to prevent overlap
-        plt.show()
-
-
-'''
-import matplotlib.pyplot as plt
-import seaborn as sns
-class visualization:
-    def __init__(self, inventory,cal_cost):
-        self.inventory=inventory
-        self.cost_list=[]    
-        self.level_list=[]
-        self.cal_cost = cal_cost
-    def return_list(self):
-       self.level_list.append(self.inventory.level_over_time)
-       self.cost_list.append(self.inventory.inventory_cost_over_time)
-       #cal_cost = 
-       return self.level_list,self.cost_list 
-    def plot_inventory_graphs(self, level, cost, item_name_list):
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
-        
-        # 첫 번째 그래프 (inventory_level)를 왼쪽
-        sns.set(style="darkgrid")
-        for i in range(len(level)):
-            axes[0].plot(level[i][0], label=item_name_list[i])
-        axes[0].set_xlabel('hours')
-        axes[0].set_ylabel('level')
-        axes[0].legend()
-        axes[0].grid(True)
-        axes[0].set_title("inventory level")
-        
-        # 두 번째 그래프 (inventory_cost)를 오른쪽
-        sns.set(style="darkgrid")
-        for i in range(len(cost)):
-            axes[1].plot(cost[i][0], label=item_name_list[i])
-        axes[1].set_xlabel('hours')
-        axes[1].set_ylabel('cost')
-        axes[1].legend()
-        axes[1].grid(True)
-        axes[1].set_title("inventory cost")
-        
-        plt.tight_layout()
-        plt.show()
-        
-        # 세 번째 그래프 (total_cost)
-        sns.set(style="darkgrid")
-        for i in range(len(cost)):
-            axes[2].plot(cost[i][0], label=item_name_list[i])
-        axes[2].set_xlabel('hours')
-        axes[2].set_ylabel('cost')
-        axes[2].legend()
-        axes[2].grid(True)
-        axes[2].set_title("total cost")
-        
-        plt.tight_layout()
-        plt.show()
-
-    def plot_learning_history(history):
-        fig = plt.figure(1, figsize=(14, 5))
-        ax = fig.add_subplot(1, 1, 1)
-        plt.plot(history, lw=4,
-                 marker='o', markersize=10)
-        ax.tick_params(axis='both', which='major', labelsize=15)
-        plt.xlabel('Episodes', size=20)
-        plt.ylabel('# Total Rewards', size=20)
-        plt.show()
-'''
+    visual = VISUALIAZTION.count(1)
+    print(visual)
+    count_type = 0
+    cont_len = 1
+    for x in VISUALIAZTION:
+        cont = 0
+        if x == 1:
+            plt.subplot(int(f"{visual}1{cont_len}"))
+            cont_len += 1
+            for lst in Visual_Dict[Key[count_type]]:
+                plt.plot(lst, label=Visual_Dict['Keys'][Key[count_type]][cont])
+                plt.legend()
+                cont += 1
+        count_type += 1
+    path = os.path.join(GRAPH_FOLDER, f'그래프{i}.png')
+    print(path)
+    plt.savefig(path)
+    plt.clf()
