@@ -110,7 +110,7 @@ DEMAND_QTY_MIN = 14
 DEMAND_QTY_MAX = 14
 
 # Simulation
-SIM_TIME = 14  # 200 [days] per episode
+SIM_TIME = 100  # 200 [days] per episode
 
 # Uncertainty factors
 

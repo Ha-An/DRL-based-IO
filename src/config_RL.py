@@ -15,7 +15,7 @@ for key in P:
 # maximum production
 EXPECTED_PRODUCT_MAX = I[0]['CUST_ORDER_CYCLE']*P[0]['PRODUCTION_RATE']
 # Episode
-N_EPISODES = 1  # 3000
+N_EPISODES = 100  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
