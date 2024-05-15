@@ -1,0 +1,14 @@
+config
+53,54: State output status management variable added
+Changed to 62,67,75,77:XAI->State
+
+wrapper
+85,85 state creation added
+121,122: for state calculation
+Add next_state_real,next_state_corr
+167~204: get_state added, correct_state_for_SB3 added
+
+main:
+62~83 Report function deleted, export_state function added
+environment
+414~428update_daily_report function changed

@@ -4,9 +4,8 @@ import numpy as np
 from config_SimPy import *
 from config_RL import *
 import environment as env
-import matplotlib.pyplot as plt
-import optuna.visualization as vis
-from log import *
+from log_SimPy import *
+from log_RL import *
 import random
 from torch.utils.tensorboard import SummaryWriter
 
@@ -26,7 +25,6 @@ class GymInterface(gym.Env):
             os = []
             for _ in range(len(I)):
                 os.append(INVEN_LEVEL_MAX+1)
-            if STATE_DEMAND:
                 os.append(DEMAND_QTY_MAX+1+DELTA_MIN)
                 os.append(DEMAND_QTY_MAX+1)
             self.observation_space = spaces.MultiDiscrete(os)
@@ -41,32 +39,34 @@ class GymInterface(gym.Env):
             self.action_space = spaces.Box(low=np.array(actionSpace_low), high=np.array(
                 actionSpace_high), dtype=np.float32)
             # self.observation_space = spaces.Box(low=0, high=INVEN_LEVEL_MAX, shape=(len(I),), dtype=np.float32)
-            os = [INVEN_LEVEL_MAX+1 for _ in range(len(I))]
-            if STATE_DEMAND:
-                os.append(DEMAND_QTY_MAX + 1)
-                os.append(DEMAND_QTY_MAX+1)
+            os = [101 for _ in range(len(I))]
+            os.append(DEMAND_QTY_MAX + 1)
+            os.append(DEMAND_QTY_MAX+1)
             self.observation_space = spaces.Discrete(os)
         elif RL_ALGORITHM == "PPO":
             # Define action space
             actionSpace = []
-            for _ in range(len(I)):
-                if I[_]["TYPE"] == "Material":
+            for i in range(len(I)):
+                if I[i]["TYPE"] == "Material":
                     actionSpace.append(len(ACTION_SPACE))
             self.action_space = spaces.MultiDiscrete(actionSpace)
+            '''
             # Define observation space:
             for i in range(len(I)):
                 os.append(INVEN_LEVEL_MAX+1)
                 os.append(INVEN_LEVEL_MAX+1+DELTA_MIN)
-            if STATE_DEMAND:
-                os.append(DEMAND_QTY_MAX + 1+EXPECTED_PRODUCT_MAX)
+            # os.append(DEMAND_QTY_MAX + 1+EXPECTED_PRODUCT_MAX)
+            os.append(INVEN_LEVEL_MAX + DEMAND_QTY_MAX+1)
+            self.observation_space = spaces.MultiDiscrete(os)
+            print(os) 
+            
+            # Define the size of observation space:
+            os = [upper - lower + 1 for lower, upper in STATE_RANGES]
+            '''
+            os=[102 for _ in range(len(I)*2+1)]
             self.observation_space = spaces.MultiDiscrete(os)
             print(os)
-        # print(self.observation_space)
-        # Simpy environment
-        # self.simpy_env = simpy.Environment()
-        # self.simpy_env, self.inventoryList, self.procurementList, self.productionList, self.sales, self.customer, self.providerList, self.daily_events = env.create_env(
-        #    I, P, DAILY_EVENTS)
-        # print(self.simpy_env, self.inventoryList, self.procurementList, self.productionList, self.sales, self.customer, self.providerList, self.daily_events)
+
         self.total_reward_over_episode = []
         self.total_reward = 0
         self.num_episode = 1
@@ -78,10 +78,15 @@ class GymInterface(gym.Env):
             I, P, DAILY_EVENTS)
         env.simpy_event_processes(self.simpy_env, self.inventoryList, self.procurementList,
                                   self.productionList, self.sales, self.customer, self.providerList, self.daily_events, I)
+        env.update_daily_report(self.inventoryList)
+        
+        #print("==========Reset==========")
         self.shortages = 0
-        return self.cap_current_state()
+        state_real=self.get_current_state()
+        return self.correct_state_for_SB3(state_real)
 
     def step(self, action):
+        
         # Update the action of the agent
         if RL_ALGORITHM == "DQN":
             I[1]["LOT_SIZE_ORDER"] = action
@@ -99,32 +104,34 @@ class GymInterface(gym.Env):
             i = 0
             for _ in range(len(I)):
                 if I[_]["TYPE"] == "Material":
-                    # I[_]["LOT_SIZE_ORDER"] = action[i]
-                    I[_]["LOT_SIZE_ORDER"] = ORDER_QTY
+                    I[_]["LOT_SIZE_ORDER"] = action[i]
+                    #I[_]["LOT_SIZE_ORDER"] = ORDER_QTY
                     i += 1
 
         # Capture the current state of the environment
         # current_state = env.cap_current_state(self.inventoryList)
         # Run the simulation for 24 hours (until the next day)
-        env.update_daily_report(self.inventoryList)
+        #Action append
+        STATE_ACTION_REPORT_REAL[-1].append(action)
+        STATE_ACTION_REPORT_CORRECTION[-1].append(action)
+
         self.simpy_env.run(until=self.simpy_env.now + 24)
+        env.update_daily_report(self.inventoryList)
         # Capture the next state of the environment
-        next_state = self.cap_current_state()
+        next_state_real=self.get_current_state()
+        next_state_corr = self.correct_state_for_SB3(next_state_real)
         # Calculate the total cost of the day
         env.Cost.update_cost_log(self.inventoryList)
+        if VALIDATION:
+            cost=dict(DAILY_COST_REPORT)
         env.Cost.clear_cost()
         # reward = -COST_LOG[-1]-next_state[-1]*I[0]["SHORTAGE_COST_PRO"]
         reward = -COST_LOG[-1]
         self.total_reward += reward
         self.shortages += self.sales.num_shortages
         self.sales.num_shortages = 0
-        '''
-        s = []
-        for _ in range(len(self.inventoryList)):
-            s.append(self.inventoryList[_].current_level)
-        daily_total_cost = env.cal_daily_cost_DESC(s[0], s[1], action)
-        '''
-        if PRINT_SIM_EVENTS:
+        
+        if VALIDATION:
             # Print the simulation log every 24 hours (1 day)
             print(f"\nDay {(self.simpy_env.now+1) // 24}:")
             if RL_ALGORITHM == "DQN":
@@ -139,7 +146,12 @@ class GymInterface(gym.Env):
             for log in self.daily_events:
                 print(log)
             print("[Daily Total Cost] ", -reward)
-            print("[STATE for the next round] ", next_state)
+            for _ in cost.keys():
+                print(_,cost[_])
+            print("Total cost: ", -self.total_reward)
+            print("[STATE for the next round] ", next_state_real)
+
+                
         self.daily_events.clear()
 
         # Check if the simulation is done
@@ -156,29 +168,46 @@ class GymInterface(gym.Env):
             self.num_episode += 1
 
         info = {}  # 추가 정보 (필요에 따라 사용)
+        
+        return next_state_corr, reward, done, info
 
-        # self.all_order_quantities.append(action)
-        # self.all_rewards.append(reward)
-        # self.all_inventory_levels.append((next_state[0], next_state[1]))
-        return next_state, reward, done, info
-
-    def cap_current_state(self):
-        state = []
+    def get_current_state(self):
+        #Make State for RL
+        temp=[]
+        #Update STATE_ACTION_REPORT_REAL
+        for id in range(len(I)):
+            #ID means Item_ID, 7 means to the length of the report for one item
+            temp.append(DAILY_REPORTS[-1][(id)*7+6])#append On_Hand_inventory
+            temp.append(DAILY_REPORTS[-1][(id)*7+4]-DAILY_REPORTS[-1][(id)*7+5])#append changes in inventory
+        temp.append(I[0]["DEMAND_QUANTITY"]-DAILY_REPORTS[-1][6])#append remaining demand
+        STATE_ACTION_REPORT_REAL.append(temp)
+        return STATE_ACTION_REPORT_REAL[-1]
+    #Min-Max Normalization    
+    def correct_state_for_SB3(self,state):
+        
+        '''
         for inven in self.inventoryList:
-
+        
             # Function to capture the current state of the inventory
             state.append(
                 inven.daily_inven_report[4]-inven.daily_inven_report[5]+DELTA_MIN)
             state.append(inven.daily_inven_report[6])
             # Reset Report
-            inven.daily_inven_report = [f"Day {inven.env.now//24}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
-                                        inven.on_hand_inventory, 0, 0, 0]  # inventory report
-        if STATE_DEMAND:
-            state.append(I[0]['DEMAND_QUANTITY'] -
-                         self.inventoryList[0].on_hand_inventory+EXPECTED_PRODUCT_MAX)
-
-        return state
-
+            
+        # state.append(I[0]['DEMAND_QUANTITY'] - self.inventoryList[0].on_hand_inventory+EXPECTED_PRODUCT_MAX)
+        
+        state.append(I[0]['DEMAND_QUANTITY'] -
+                     self.inventoryList[0].on_hand_inventory+INVEN_LEVEL_MAX)
+        '''
+        #Update STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
+        state_corrected=[]
+        for id in range(len(I)):
+            state_corrected.append(round((state[id*2]/INVEN_LEVEL_MAX)*100))#normalization Onhand inventory
+            state_corrected.append(round(((state[id*2+1]-(-DELTA_MIN))/(ACTION_SPACE[-1]-(-DELTA_MIN)))*100))#normalization changes in inventory
+        state_corrected.append(round(((state[-1]+INVEN_LEVEL_MAX)/(I[0]['DEMAND_QUANTITY']+INVEN_LEVEL_MAX))*100))#normalization remaining demand
+        STATE_ACTION_REPORT_CORRECTION.append(state_corrected)
+        return STATE_ACTION_REPORT_CORRECTION[-1]
+    
     def render(self, mode='human'):
         pass
         # if EPISODES == 1:
