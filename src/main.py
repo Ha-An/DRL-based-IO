@@ -41,7 +41,7 @@ def evaluate_model(model, env, num_episodes):
                 episode_inventory[x].append(env.inventoryList[x].on_hand_inventory)
             action, _ = model.predict(obs)  # Get action from model
             # Execute action in environment
-            obs, reward, done, _ = env.step([2])
+            obs, reward, done, _ = env.step(action)
             episode_reward += reward  # Accumulate rewards
             #XAI.append(
             #    [_[3:-1] for _ in list(env.cap_current_state())])
