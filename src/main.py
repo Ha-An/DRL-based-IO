@@ -191,6 +191,7 @@ if OPTIMIZE_HYPERPARAMETERS:
 model = build_model()
 # Train the model
 model.learn(total_timesteps=SIM_TIME * N_EPISODES)
+model.save("PPO_MODEL")
 training_end_time=time.time()
 if STATE_TRAIN_EXPORT:
     export_state('TRAIN')
