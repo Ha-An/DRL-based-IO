@@ -182,16 +182,31 @@ def export_report(inventoryList):
 
 # Start timing the computation
 start_time = time.time()
-
 # Run hyperparameter optimization if enabled
 if OPTIMIZE_HYPERPARAMETERS:
     ht.run_optuna(env)
 
 # Build the model
-model = build_model()
+if LOAD_MODEL:
+    if RL_ALGORITHM == "DQN":
+        model = DQN.load(os.path.join(SAVED_MODEL_PATH,LOAD_MODEL_NAME),env=env)
+
+    elif RL_ALGORITHM == "DDPG":
+        model = DDPG.load(os.path.join(SAVED_MODEL_PATH,LOAD_MODEL_NAME),env=env)
+
+    elif RL_ALGORITHM == "PPO":
+        model = PPO.load(os.path.join(SAVED_MODEL_PATH,LOAD_MODEL_NAME),env=env)
+
+else:
+    model = build_model()
+
 # Train the model
 model.learn(total_timesteps=SIM_TIME * N_EPISODES)
 training_end_time=time.time()
+if SAVE_MODEL:
+    model.save(os.path.join(SAVED_MODEL_PATH,SAVED_MODEL_NAME))
+training_end_time=time.time()
+
 if STATE_TRAIN_EXPORT:
     export_state('TRAIN')
     

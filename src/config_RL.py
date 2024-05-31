@@ -24,7 +24,7 @@ for key in P:
 # maximum production
 
 # Episode
-N_EPISODES = 2000  # 3000
+N_EPISODES = 4000 # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -56,7 +56,7 @@ OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 100  # 50
 
 # Evaluation
-N_EVAL_EPISODES = 100  # 100
+N_EVAL_EPISODES = 1  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = True
@@ -103,6 +103,15 @@ VIZ_INVEN_LINE=True
 VIZ_INVEN_PIE=True
 VIZ_COST_PIE=True
 VIZ_COST_BOX=True
+
+#Saved Model
+SAVED_MODEL_PATH=os.path.join(parent_dir,"Saved_Model")
+SAVE_MODEL=True
+SAVED_MODEL_NAME="PPO_MODEL"
+
+#Load Model
+LOAD_MODEL=False
+LOAD_MODEL_NAME="PPO_MODEL" 
 
 
 # Non-stationary demand

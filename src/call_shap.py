@@ -30,7 +30,7 @@ def save_path():
     import shutil
 
     # Current working path
-    current_path = os.getcwd()
+    current_path = os.path.dirname(__file__)
 
     # Parent folder path
     parent_path = os.path.dirname(current_path)
