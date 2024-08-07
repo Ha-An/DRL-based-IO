@@ -12,32 +12,26 @@ from log_RL import *
 
 
 def build_model():
-    if RL_ALGORITHM == "DQN":
-        model = DQN("MlpPolicy", env, verbose=0)
-        # model = DQN("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #             batch_size=BEST_PARAMS['batch_size'], verbose=0)
-    elif RL_ALGORITHM == "DDPG":
-        model = DQN("MlpPolicy", env, verbose=0)
-        # model = DDPG("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #              batch_size=BEST_PARAMS['batch_size'], verbose=0)
-    elif RL_ALGORITHM == "PPO":
-        model = PPO("MlpPolicy", env, verbose=0, learning_rate=0.0001,batch_size=20,n_steps=SIM_TIME)
-        # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['learning_rate'], gamma=BEST_PARAMS['gamma'],
-        #             batch_size=BEST_PARAMS['batch_size'], n_steps=SIM_TIME, verbose=0)
+    if RL_ALGORITHM == "PPO":
+        model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME,learning_rate=0.0003, batch_size=64) #DEFAULT: learning_rate=0.0003, batch_size=64 => 28 mins
+        # [Train 2] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=16) => 50 mins
+        # [Train 3] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0002, batch_size=16) => 49 mins
+        # [Train 4] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.00015, batch_size=20) => 44 mins
+        # [Train 5] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME, learning_rate=0.0001, batch_size=20) => 39 mins
+        # [Train 6] # => 40 mins
+        # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME *
+        #             4, learning_rate=0.0001, batch_size=20)
+        # [Train 7] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*2, learning_rate = 0.0001, batch_size = 20) => 36 mins
+        # [Train 8] # model = PPO("MlpPolicy", env, verbose=0, n_steps=SIM_TIME*10, learning_rate = 0.0001, batch_size = 20) => 40 mins
+
+        # model = PPO("MlpPolicy", env, learning_rate=BEST_PARAMS['LEARNING_RATE'], gamma=BEST_PARAMS['GAMMA'],
+        #             batch_size=BEST_PARAMS['BATCH_SIZE'], n_steps=BEST_PARAMS['N_STEPS'], verbose=0)
         print(env.observation_space)
+    elif RL_ALGORITHM == "DQN":
+        pass
+    elif RL_ALGORITHM == "DDPG":
+        pass
     return model
-
-
-'''
-def export_report(inventoryList):
-    for x in range(len(inventoryList)):
-        for report in DAILY_REPORTS:
-            export_Daily_Report.append(report[x])
-    daily_reports = pd.DataFrame(export_Daily_Report)
-    daily_reports.columns = ["Day", "Name", "Type",
-                         "Start", "Income", "Outcome", "End"]
-    daily_reports.to_csv("./Daily_Report.csv")
-'''
 
 
 # Start timing the computation
@@ -55,19 +49,13 @@ if OPTIMIZE_HYPERPARAMETERS:
 else:
     # Build the model
     if LOAD_MODEL:
-        if RL_ALGORITHM == "DQN":
-            model = DQN.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
-
-        elif RL_ALGORITHM == "DDPG":
-            model = DDPG.load(os.path.join(
-                SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
-
-        elif RL_ALGORITHM == "PPO":
+        if RL_ALGORITHM == "PPO":
             model = PPO.load(os.path.join(
                 SAVED_MODEL_PATH, LOAD_MODEL_NAME), env=env)
         print(f"{LOAD_MODEL_NAME} is loaded successfully")
     else:
+        print("State_CORRECTION: ", USE_CORRECTION)
+        print("Initial_Obs: ", env.reset())
         model = build_model()
         # Train the model
         model.learn(total_timesteps=SIM_TIME * N_EPISODES)

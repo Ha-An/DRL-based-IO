@@ -2,33 +2,40 @@ import os
 import shutil
 from config_SimPy import *
 
-# RL algorithms
-RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
-# BEST_PARAMS = {'learning_rate': 0.000171573369797847,
-#                'gamma': 0.9380991034336233, 'batch_size': 16}
+# Using correction option
+USE_CORRECTION = False
 
-ACTION_SPACE = [0, 1, 2, 3, 4, 5]
 
-'''
-# State space
-STATE_RANGES = []
-for i in range(len(I)):
-    # Inventory level
-    STATE_RANGES.append((0, INVEN_LEVEL_MAX))
-    # Daily change for the on-hand inventory
-    STATE_RANGES.append((-INVEN_LEVEL_MAX, INVEN_LEVEL_MAX))
-# Remaining demand: Demand quantity - Current product level
-STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
-'''
-# Find minimum Delta
-PRODUCT_OUTGOING_CORRECTION = 0
-for key in P:
-    PRODUCT_OUTGOING_CORRECTION = max(P[key]["PRODUCTION_RATE"] *
-                                      max(P[key]['QNTY_FOR_INPUT_ITEM']), DEMAND_QTY_MAX)
-# maximum production
+def Create_scenario():
+    if DEMAND_DIST_TYPE == "UNIFORM":
+        # Uniform distribution
+        param_min = random.randint(9, 14)
+        param_max = random.randint(param_min, 14)
+        demand_dist = {"Dist_Type": DEMAND_DIST_TYPE,
+                       "min": param_min, "max": param_max}
+    elif DEMAND_DIST_TYPE == "GAUSSIAN":
+        # Gaussian distribution
+        param_mean = random.randint(9, 13)
+        param_std = random.randint(0, 5)
+        demand_dist = {"Dist_Type": DEMAND_DIST_TYPE,
+                       "mean": param_mean, "std": param_std}
 
-# Episode
-N_EPISODES = 1  # 3000
+    if LEAD_DIST_TYPE == "UNIFORM":
+        # Uniform distribution
+        param_min = random.randint(1, 3)
+        param_max = random.randint(param_min, 3)
+        leadtime_dist = {"Dist_Type": LEAD_DIST_TYPE,
+                         "min": param_min, "max": param_max}
+    elif LEAD_DIST_TYPE == "GAUSSIAN":
+        # Gaussian distribution
+        # Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
+        param_mean = random.randint(2, 6)
+        param_std = random.randint(0, 3)
+        leadtime_dist = {"Dist_Type": LEAD_DIST_TYPE,
+                         "mean": param_mean, "std": param_std}
+    scenario = {"DEMAND": demand_dist, "LEADTIME": leadtime_dist}
+
+    return scenario
 
 
 def DEFINE_FOLDER(folder_name):
@@ -48,72 +55,69 @@ def save_path(path):
     return path
 
 
+# Episode
+N_EPISODES = 3000  # 3000
+
+# RL algorithms
+RL_ALGORITHM = "PPO"  # "DP", "DQN", "DDPG", "PPO", "SAC"
+# Assembly Process 3
+# BEST_PARAMS = {'LEARNING_RATE': 0.0006695881981942652,
+#                'GAMMA': 0.917834573740, 'BATCH_SIZE': 8, 'N_STEPS': 600}
+
+# Lead time의 최대 값은 Action Space의 최대 값과 곱하였을 때 INVEN_LEVEL_MAX의 2배를 넘지 못하게 설정 해야 함 (INTRANSIT이 OVER되는 현상을 방지 하기 위해서)
+ACTION_SPACE = [0, 1, 2, 3, 4, 5]
+
+DRL_TENSORBOARD = True
+
 # Hyperparameter optimization
 OPTIMIZE_HYPERPARAMETERS = False
-N_TRIALS = 15  # 50
-
-#RL_Options
-DAILY_CHANGE=1 #0 Means False , 1 Means True
-INTRANSIT=0 #0 Means False , 1 Means True
-USE_CORRECTION=True
+N_TRIALS = 20  # 50
 
 # Evaluation
-N_EVAL_EPISODES = 15  # 100
+N_EVAL_EPISODES = 5000  # 100
 
 # Export files
-DAILY_REPORT_EXPORT = False
+DAILY_REPORT_EXPORT = True
 STATE_TRAIN_EXPORT = True
 STATE_TEST_EXPORT = True
 
 # Define parent dir's path
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
-# Define each dir's parent dir's path
-tensorboard_folder = os.path.join(parent_dir, "tensorboard_log")
+
+# Define dir's path
+if DRL_TENSORBOARD == True:
+    tensorboard_folder = os.path.join(
+        parent_dir, "DRL_tensorboard_log")
+elif DRL_TENSORBOARD == False:
+    tensorboard_folder = os.path.join(
+        parent_dir, "NEW_META_tensorboard_logs")
+
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
 daily_report_folder = os.path.join(result_csv_folder, "daily_report")
 
 # Define dir's path
 TENSORFLOW_LOGS = DEFINE_FOLDER(tensorboard_folder)
-'''
-STATE = DEFINE_FOLDER(STATE_folder)
-REPORT_LOGS = DEFINE_FOLDER(daily_report_folder)
-GRAPH_FOLDER = DEFINE_FOLDER(graph_folder)
-'''
+
 STATE = save_path(STATE_folder)
 REPORT_LOGS = save_path(daily_report_folder)
 
-# Makedir
-'''
-if os.path.exists(STATE):
-    pass
-else:
-    os.makedirs(STATE)
 
-if os.path.exists(REPORT_LOGS):
-    pass
-else:
-    os.makedirs(REPORT_LOGS)
-if os.path.exists(GRAPH_FOLDER):
-    pass
-else:
-    os.makedirs(GRAPH_FOLDER)
-'''
 # Visualize_Graph
 VIZ_INVEN_LINE = False
 VIZ_INVEN_PIE = False
 VIZ_COST_PIE = False
 VIZ_COST_BOX = False
 
-# Saved Model
+# Saved Models
 SAVED_MODEL_PATH = os.path.join(parent_dir, "Saved_Model")
-SAVE_MODEL = False
-SAVED_MODEL_NAME = "PPO_MODEL_test_val"
+SAVE_MODEL = True
+SAVED_MODEL_NAME = "E1_MAML_PPO"
 
 # Load Model
-LOAD_MODEL = False
-LOAD_MODEL_NAME = "PPO_MODEL_SIM500"
+LOAD_MODEL = True
+LOAD_MODEL_NAME = "E1_MAML_PPO"
 
 # Non-stationary demand
 mean_demand = 100

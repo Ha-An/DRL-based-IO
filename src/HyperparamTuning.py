@@ -12,20 +12,22 @@ def tuning_hyperparam(trial):
     env = GymInterface()
     env.reset()
     # Define search space for hyperparameters
-    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1)
-    gamma = trial.suggest_float('gamma', 0.9, 0.9999, log=True)
-    batch_size = trial.suggest_categorical(
-        'batch_size', [16, 32, 64, 128, 256])
+    LEARNING_RATE = trial.suggest_loguniform('learning_rate', 1e-5, 1)
+    GAMMA = trial.suggest_float('gamma', 0.9, 0.9999, log=True)
+    BATCH_SIZE = trial.suggest_categorical(
+        'batch_size', [16, 32, 64])
+    N_STEPS = trial.suggest_categorical(
+        'n_steps', [SIM_TIME, SIM_TIME*2, SIM_TIME*3, SIM_TIME*4])
     # Define the RL model
-    if RL_ALGORITHM == "DQN":
-        model = DQN("MlpPolicy", env, learning_rate=learning_rate,
-                    gamma=gamma, batch_size=batch_size, verbose=0)
+
+    if RL_ALGORITHM == "PPO":
+        model = PPO("MlpPolicy", env, learning_rate=LEARNING_RATE,
+                    gamma=GAMMA, batch_size=BATCH_SIZE, n_steps=N_STEPS, verbose=0)
+    elif RL_ALGORITHM == "DQN":
+        pass
     elif RL_ALGORITHM == "DDPG":
-        model = DDPG("MlpPolicy", env, learning_rate=learning_rate,
-                     gamma=gamma, batch_size=batch_size, verbose=0)
-    elif RL_ALGORITHM == "PPO":
-        model = PPO("MlpPolicy", env, learning_rate=learning_rate,
-                    gamma=gamma, batch_size=batch_size, n_steps=SIM_TIME, verbose=0)
+        pass
+
     # Train the model
     model.learn(total_timesteps=SIM_TIME*N_EPISODES)
     # Evaluate the model

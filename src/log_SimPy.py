@@ -2,7 +2,7 @@
 DAILY_EVENTS = []
 # Log daily repots
 DAILY_REPORTS = []
-STATE_DICT=[]
+STATE_DICT = []
 COST_LOG = []
 DEMAND_LOG = []
 DAILY_COST_REPORT = {
@@ -12,4 +12,3 @@ DAILY_COST_REPORT = {
     'Order cost': 0,
     'Shortage cost': 0
 }
-
