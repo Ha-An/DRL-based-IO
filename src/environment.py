@@ -2,7 +2,8 @@ import simpy
 import numpy as np
 from config_SimPy import *  # Assuming this imports necessary configurations
 from log_SimPy import *  # Assuming this imports necessary logging functionalities
-from config_RL import *
+from visualization import *
+
 
 class Inventory:
     def __init__(self, env, item_id, holding_cost):
@@ -14,14 +15,17 @@ class Inventory:
         # Inventory in transition (e.g., being delivered)
         self.in_transition_inventory = 0
         self.capacity_limit = INVEN_LEVEL_MAX  # Maximum capacity of the inventory
-        # Daily inventory report template: Day/Name/Type/Start/Income/Outgoing/In_transit/End
+        # Daily inventory report template:
+        '''
+        Day / Inventory_Name / Inventory_Type / Inventory at the start of the day / Income_Inventory(Onhand) / Outgoing_inventory(Onhand) / Intransit_Inventory / Inventory at the end of the day
+        '''
         self.daily_inven_report = [f"Day {self.env.now // 24+1}", I[self.item_id]['NAME'],
                                    I[self.item_id]['TYPE'], self.on_hand_inventory, 0, 0, 0, 0]
         # Unit holding cost per hour
         self.unit_holding_cost = holding_cost / 24
         self.holding_cost_last_updated = 0.0  # Last time holding cost was updated
 
-    def update_demand_quantity(self, demand_qty, daily_events):
+    def update_demand_quantity(self, daily_events):
         """
         Update the demand quantity and log the event.
         """
@@ -32,16 +36,6 @@ class Inventory:
         """
         Update the inventory level based on the quantity of change and log the event.
         """
-        '''
-        if I[self.item_id]["TYPE"] == "Material":
-            if quantity_of_change < 0 and inven_type == "ON_HAND":
-                self._update_report(quantity_of_change)
-            elif inven_type == "IN_TRANSIT" and quantity_of_change > 0:
-                self.change_qty = quantity_of_change
-                self._update_report(quantity_of_change)
-        else:
-            self._update_report(quantity_of_change)
-        '''
         if inven_type == "ON_HAND":
             # Update on-hand inventory
             Cost.cal_cost(self, "Holding cost")
@@ -52,34 +46,31 @@ class Inventory:
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Due to the upper limit of the inventory, {I[self.item_id]['NAME']} is wasted: {self.on_hand_inventory - self.capacity_limit}")
                 self.on_hand_inventory = self.capacity_limit
-            # Check if inventory goes negative
-            if self.on_hand_inventory < 0:
-                daily_events.append(
-                    f"{present_daytime(self.env.now)}: Shortage of {I[self.item_id]['NAME']}: {self.capacity_limit - self.on_hand_inventory}")
-                self.on_hand_inventory = 0
 
             self.holding_cost_last_updated = self.env.now
 
         elif inven_type == "IN_TRANSIT":
-            
             # Update in-transition inventory
             self.in_transition_inventory += quantity_of_change
-        
-        self._update_report(quantity_of_change,inven_type)
+        self._update_report(quantity_of_change, inven_type)
 
-    def _update_report(self, quantity_of_change,inven_type):
+    def _update_report(self, quantity_of_change, inven_type):
         """
         Update the daily inventory report based on the quantity of change.
         """
-        if inven_type=="ON_HAND":
+        if inven_type == "ON_HAND":
             if quantity_of_change > 0:
-                self.daily_inven_report[4] += quantity_of_change#Income Inventory
+                # Income Inventory
+                self.daily_inven_report[4] += quantity_of_change
 
             else:
-                self.daily_inven_report[5] -= quantity_of_change#Outgoing Invnetory
+                # Outgoing Invnetory
+                self.daily_inven_report[5] -= quantity_of_change
 
-        elif inven_type=="IN_TRANSIT":
-            self.daily_inven_report[6]+=quantity_of_change#In_Transit Inventory
+        elif inven_type == "IN_TRANSIT":
+            # In_Transit Inventory
+            self.daily_inven_report[6] += quantity_of_change
+
 
 class Supplier:
     def __init__(self, env, name, item_id):
@@ -88,15 +79,15 @@ class Supplier:
         self.name = name
         self.item_id = item_id
 
-    def deliver_to_manufacturer(self, procurement, material_qty, material_inventory, daily_events):
+    def deliver_to_manufacturer(self, procurement, material_qty, material_inventory, daily_events, lead_time_dict):
         """
         Deliver materials to the manufacturer after a certain lead time.
         """
-        I[self.item_id]["SUP_LEAD_TIME"] = SUP_LEAD_TIME_FUNC()
+        I[self.item_id]["SUP_LEAD_TIME"] = SUP_LEAD_TIME_FUNC(lead_time_dict)
         lead_time = I[self.item_id]["SUP_LEAD_TIME"]
         # Log the delivery event with lead time
         daily_events.append(
-            f"{self.env.now}: {I[self.item_id]['NAME']} will be delivered at {lead_time} days after         : {I[self.item_id]['LOT_SIZE_ORDER']} units")
+            f"{self.env.now}: {I[self.item_id]['NAME']} will be delivered at {lead_time} days after         : {material_qty} units")
 
         # Wait for the lead time
         yield self.env.timeout(lead_time * 24)
@@ -130,22 +121,27 @@ class Procurement:
         daily_events.append(
             f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']} has delivered                             : {material_qty} units ")  # Record when Material provide
 
-    def order_material(self, supplier, inventory, daily_events):
+    def order_material(self, supplier, inventory, daily_events, lead_time_dict):
         """
         Place orders for materials to the supplier.
         """
-        yield self.env.timeout(self.env.now)  # Wait for the next order cycle
+        # yield self.env.timeout(self.env.now)  # Wait for the next order cycle
         while True:
             daily_events.append(
                 f"==============={I[self.item_id]['NAME']}\'s Inventory ===============")
 
             # Set the order size based on LOT_SIZE_ORDER and reorder level
-            #I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
-            order_size = I[self.item_id]["LOT_SIZE_ORDER"]
-            # if order_size > 0 and inventory.on_hand_inventory < REORDER_LEVEL:
+            if USE_SQPOLICY:
+                if inventory.on_hand_inventory <= SQPAIR['Reorder']:
+                    order_size = SQPAIR['Order']
+                else:
+                    order_size = 0
+            else:
+                # I[self.item_id]["LOT_SIZE_ORDER"] = ORDER_QTY
+                order_size = I[self.item_id]["LOT_SIZE_ORDER"]
             if order_size > 0:
                 daily_events.append(
-                    f"{present_daytime(self.env.now)}: The Procurement ordered {I[self.item_id]['NAME']}: {I[self.item_id]['LOT_SIZE_ORDER']}  units  ")
+                    f"{present_daytime(self.env.now)}: The Procurement ordered {I[self.item_id]['NAME']}: {order_size}  units  ")
                 self.order_qty = order_size
                 # Update in-transition inventory
                 inventory.update_inven_level(
@@ -154,17 +150,18 @@ class Procurement:
                 Cost.cal_cost(self, "Order cost")
                 # Initiate the delivery process by calling deliver_to_manufacturer method of the supplier
                 self.env.process(supplier.deliver_to_manufacturer(
-                    self, order_size, inventory, daily_events))
+                    self, order_size, inventory, daily_events, lead_time_dict))
                 # Record in_transition_inventory
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s In_transition_inventory                    : {inventory.in_transition_inventory} units ")
                 # Record inventory
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: {I[self.item_id]['NAME']}\'s Total_Inventory                            : {inventory.in_transition_inventory+inventory.on_hand_inventory} units  ")
-            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] *
-                                   24)  # Wait for the next order cycle
-            #record order history
-           
+            # Wait for the next order cycle
+            yield self.env.timeout(I[self.item_id]["MANU_ORDER_CYCLE"] * 24)
+            # record order history
+
+
 class Production:
     def __init__(self, env, name, process_id, production_rate, output, input_inventories, qnty_for_input_item, output_inventory, processing_cost, process_stop_cost):
         # Initialize production process
@@ -178,20 +175,21 @@ class Production:
         self.output_inventory = output_inventory
         self.processing_time = 24 / self.production_rate
         self.unit_processing_cost = processing_cost
+        self.print_stop = True
+        self.print_limit = True
 
     def process_items(self, daily_events):
         """
         Simulate the production process.
         """
         while True:
-            daily_events.append(
-                "===============Process Phase===============")
-
             # Check if there's a shortage of input materials or WIPs
             shortage_check = False
             for inven, input_qnty in zip(self.input_inventories, self.qnty_for_input_item):
                 if inven.on_hand_inventory < input_qnty:
                     shortage_check = True
+                    # early stop
+                    break
 
             # Check if the output inventory is full
             inven_upper_limit_check = False
@@ -199,14 +197,26 @@ class Production:
                 inven_upper_limit_check = True
 
             if shortage_check:
-                daily_events.append(
-                    f"{present_daytime(self.env.now)}: Stop {self.name} due to a shortage of input materials or WIPs")
-                yield self.env.timeout(24 - (self.env.now % 24))
+                if self.print_stop:
+                    daily_events.append(
+                        "===============Process Phase===============")
+
+                    daily_events.append(
+                        f"{present_daytime(self.env.now)}: Stop {self.name} due to a shortage of input materials or WIPs")
+                self.print_stop = False
+
+                yield self.env.timeout(1)  # Check shortage every hour
             elif inven_upper_limit_check:
-                daily_events.append(
-                    f"{present_daytime(self.env.now)}: Stop {self.name} due to the upper limit of the inventory. The output inventory is full")
-                yield self.env.timeout(24 - (self.env.now % 24))
+                if self.print_limit:
+                    daily_events.append(
+                        "===============Process Phase===============")
+                    daily_events.append(
+                        f"{present_daytime(self.env.now)}: Stop {self.name} due to the upper limit of the inventory. The output inventory is full")
+                self.print_limit = False
+                yield self.env.timeout(1)  # Check upper limit every hour
             else:
+                daily_events.append(
+                    "===============Process Phase===============")
                 daily_events.append(
                     f"{present_daytime(self.env.now)}: Process {self.process_id} begins")
 
@@ -214,14 +224,12 @@ class Production:
                 for inven, input_qnty in zip(self.input_inventories, self.qnty_for_input_item):
                     inven.update_inven_level(-input_qnty,
                                              "ON_HAND", daily_events)
-
                 # Process items (consume time)
                 Cost.cal_cost(self, "Process cost")
                 # Time correction
                 yield self.env.timeout(self.processing_time-TIME_CORRECTION)
                 daily_events.append(
                     "===============Result Phase================")
-
                 # Cost Update Time Correction
                 self.output_inventory.holding_cost_last_updated -= TIME_CORRECTION
                 # Update the inventory level for the output item
@@ -231,7 +239,8 @@ class Production:
                 self.output_inventory.holding_cost_last_updated += TIME_CORRECTION
                 daily_events.append(
                     f"{self.env.now+TIME_CORRECTION}: {self.output['NAME']} has been produced                         : 1 units")
-
+                self.print_limit = True
+                self.print_limit = True
                 yield self.env.timeout(TIME_CORRECTION)  # Time correction
 
 
@@ -254,36 +263,31 @@ class Sales:
         yield self.env.timeout(I[self.item_id]["DUE_DATE"] * 24-TIME_CORRECTION/2)  # Time Correction
         product_inventory.holding_cost_last_updated -= TIME_CORRECTION / \
             2  # Cost Update Time Correction
-        # Check if products are available for delivery
-        if product_inventory.on_hand_inventory < demand_size:
-            # Calculate the shortage
-            self.num_shortages = abs(
-                product_inventory.on_hand_inventory - demand_size)
-            # If there are some products available, deliver them first
-            if product_inventory.on_hand_inventory > 0:
-                self.delivery_item = product_inventory.on_hand_inventory
-                daily_events.append(
-                    f"{self.env.now+TIME_CORRECTION/2}: PRODUCT have been delivered to the customer       : {product_inventory.on_hand_inventory} units ")
-                # Update inventory
-                product_inventory.update_inven_level(
-                    -product_inventory.on_hand_inventory, 'ON_HAND', daily_events)
+        # Calculate the shortage
+        self.num_shortages = max(
+            0, demand_size - product_inventory.on_hand_inventory)
+        # Calculate the delivery item
+        self.delivery_item = min(
+            demand_size, product_inventory.on_hand_inventory)
+        daily_events.append(
+            f"DEMAND: {demand_size}, DELIVERY:{self.delivery_item}")
+        # If there are some products available, deliver them first
+        if self.delivery_item > 0:
+            daily_events.append(
+                f"{self.env.now+TIME_CORRECTION/2}: PRODUCT have been delivered to the customer       : {self.delivery_item} units ")
+            # Update inventory
+            product_inventory.update_inven_level(
+                -self.delivery_item, 'ON_HAND', daily_events)
+            Cost.cal_cost(self, "Delivery cost")
 
-            # Calculate and log shortage cost
+        # Calculate and log shortage cost
+        if self.num_shortages > 0:
             Cost.cal_cost(self, "Shortage cost")
             daily_events.append(
                 f"{present_daytime(self.env.now+TIME_CORRECTION/2)}: Unable to deliver {self.num_shortages} units to the customer due to product shortage")
 
-        else:
-            # Deliver products to the customer
-            self.delivery_item = demand_size
-            product_inventory.update_inven_level(
-                -demand_size, 'ON_HAND', daily_events)
-            daily_events.append(
-                f"{present_daytime(self.env.now)}: PRODUCT have been delivered to the customer : {demand_size} units ")
-
         # Cost Update Time Correction
         product_inventory.holding_cost_last_updated += TIME_CORRECTION
-        Cost.cal_cost(self, "Delivery cost")
         yield self.env.timeout(TIME_CORRECTION/2)  # Time Correction
 
     def receive_demands(self, demand_qty, product_inventory, daily_events):
@@ -291,7 +295,7 @@ class Sales:
         Receive demands from customers and initiate the delivery process.
         """
         # Update demand quantity in inventory
-        product_inventory.update_demand_quantity(demand_qty, daily_events)
+        product_inventory.update_demand_quantity(daily_events)
         # Initiate delivery process
         self.env.process(self._deliver_to_cust(
             demand_qty, product_inventory, daily_events))
@@ -304,17 +308,18 @@ class Customer:
         self.name = name
         self.item_id = item_id
 
-    def order_product(self, sales, product_inventory, daily_events):
+    def order_product(self, sales, product_inventory, daily_events, scenario):
         """
         Place orders for products to the sales process.
         """
-        yield self.env.timeout(self.env.now)  # Wait for the next order cycle
+        # # yield self.env.timeout(self.env.now)  # Wait for the next order cycle
+        # yield self.env.timeout(0)  # Wait for the next order cycle
         while True:
             # Generate a random demand quantity
-            I[0]["DEMAND_QUANTITY"] = DEMAND_QTY_FUNC()
-            demand_qty = I[0]["DEMAND_QUANTITY"]
+            I[0]["DEMAND_QUANTITY"] = DEMAND_QTY_FUNC(scenario)
             # Receive demands and initiate delivery process
-            sales.receive_demands(demand_qty, product_inventory, daily_events)
+            sales.receive_demands(
+                I[0]["DEMAND_QUANTITY"], product_inventory, daily_events)
             # Wait for the next order cycle
             yield self.env.timeout(I[0]["CUST_ORDER_CYCLE"] * 24)
 
@@ -328,48 +333,62 @@ class Cost:
 
         if cost_type == "Holding cost":
             # Calculate holding cost
-            DAILY_COST_REPORT[cost_type] += instance.unit_holding_cost * instance.on_hand_inventory * (
+            DAILY_COST[cost_type] += instance.unit_holding_cost * instance.on_hand_inventory * (
                 instance.env.now - instance.holding_cost_last_updated)
         elif cost_type == "Process cost":
             # Calculate processing cost
-            DAILY_COST_REPORT[cost_type] += instance.unit_processing_cost
+            DAILY_COST[cost_type] += instance.unit_processing_cost
         elif cost_type == "Delivery cost":
             # Calculate delivery cost
-            DAILY_COST_REPORT[cost_type] += instance.unit_delivery_cost * \
+            DAILY_COST[cost_type] += instance.unit_delivery_cost * \
                 instance.delivery_item + instance.unit_setup_cost
         elif cost_type == "Order cost":
             # Calculate order cost
-            DAILY_COST_REPORT[cost_type] += instance.unit_purchase_cost * \
+            DAILY_COST[cost_type] += instance.unit_purchase_cost * \
                 instance.order_qty + instance.unit_setup_cost
         elif cost_type == "Shortage cost":
             # Calculate shortage cost
-            DAILY_COST_REPORT[cost_type] += instance.unit_shortage_cost * \
+            DAILY_COST[cost_type] += instance.unit_shortage_cost * \
                 instance.num_shortages
 
     def update_cost_log(inventoryList):
         """
         Update the cost log at the end of each day.
         """
-        COST_LOG.append(0)
+        LOG_COST.append(0)
         # Update holding cost
         for inven in inventoryList:
-            DAILY_COST_REPORT['Holding cost'] += inven.unit_holding_cost * inven.on_hand_inventory * (
+            DAILY_COST['Holding cost'] += inven.unit_holding_cost * inven.on_hand_inventory * (
                 inven.env.now - inven.holding_cost_last_updated)
             inven.holding_cost_last_updated = inven.env.now
 
         # Update daily total cost
-        for key in DAILY_COST_REPORT.keys():
-            COST_LOG[-1] += DAILY_COST_REPORT[key]
+        for key in DAILY_COST.keys():
+            LOG_COST[-1] += DAILY_COST[key]
 
-        return COST_LOG[-1]
+        return LOG_COST[-1]
 
     def clear_cost():
         """
         Clear the daily cost report.
         """
         # Clear daily report
-        for key in DAILY_COST_REPORT.keys():
-            DAILY_COST_REPORT[key] = 0
+        for key in DAILY_COST.keys():
+            DAILY_COST[key] = 0
+
+
+def record_inventory(env, inventoryList):
+    """
+    Record inventory at every hour
+    """
+    record_graph(I)
+    while (True):
+        for inven in inventoryList:
+            GRAPH_LOG[I[inven.item_id]['NAME']].append(inven.on_hand_inventory)
+            if I[inven.item_id]['TYPE'] == 'Material':
+                GRAPH_LOG[f"{I[inven.item_id]['NAME']}_in_transition_inventory"].append(
+                    inven.in_transition_inventory)
+        yield env.timeout(1)
 
 
 def create_env(I, P, daily_events):
@@ -408,57 +427,42 @@ def create_env(I, P, daily_events):
     return simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events
 
 
-def simpy_event_processes(simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events, I):
-    # Event processes for SimPy simulation
+# Event processes for SimPy simulation
+def simpy_event_processes(simpy_env, inventoryList, procurementList, productionList, sales, customer, supplierList, daily_events, I, scenario):
+    simpy_env.process(customer.order_product(
+        sales, inventoryList[I[0]["ID"]], daily_events, scenario["DEMAND"]))
     for production in productionList:
         simpy_env.process(production.process_items(daily_events))
     for i in range(len(supplierList)):
         simpy_env.process(procurementList[i].order_material(
-            supplierList[i], inventoryList[supplierList[i].item_id], daily_events))
-    simpy_env.process(customer.order_product(
-        sales, inventoryList[I[0]["ID"]], daily_events))
+            supplierList[i], inventoryList[supplierList[i].item_id], daily_events, scenario["LEADTIME"]))
+    simpy_env.process(record_inventory(simpy_env, inventoryList))
 
 
 def update_daily_report(inventoryList):
     # Update daily reports for inventory
     day_list = []
-    day_dict={}
+    day_dict = {}
     for inven in inventoryList:
         inven.daily_inven_report[-1] = inven.on_hand_inventory
-        day_list=day_list+(inven.daily_inven_report)
-        
-        day_dict[f"On_Hand_{I[inven.item_id]['NAME']}"]=inven.on_hand_inventory
-        #daily_inven_report[4]: Income inven.daily_inven_report[5]: Outgoing
-        day_dict[f"Daily_Change_{I[inven.item_id]['NAME']}"]=inven.daily_inven_report[4]-inven.daily_inven_report[5]
-        if INTRANSIT==1:
-            if I[inven.item_id]["TYPE"]=="Material":
-                #inven.daily_inven_report[6]: In_Transit
-                day_dict[f"In_Transit_{I[inven.item_id]['NAME']}"]=inven.daily_inven_report[6]
-    DAILY_REPORTS.append(day_list)
-    STATE_DICT.append(day_dict)
-    #Reset report
+        day_list = day_list+(inven.daily_inven_report)
+
+        day_dict[f"On_Hand_{I[inven.item_id]['NAME']}"] = inven.on_hand_inventory
+        # daily_inven_report[4]: Income, inven.daily_inven_report[5]: Outgoing
+        day_dict[f"Daily_Change_{I[inven.item_id]['NAME']}"] = inven.daily_inven_report[4] - \
+            inven.daily_inven_report[5]
+        if INTRANSIT == 1:
+            if I[inven.item_id]["TYPE"] == "Material":
+                # inven.daily_inven_report[6]: In_Transit
+                day_dict[f"In_Transit_{I[inven.item_id]['NAME']}"] = inven.daily_inven_report[6]
+    LOG_DAILY_REPORTS.append(day_list)
+    LOG_STATE_DICT.append(day_dict)
+    # Reset report
     for inven in inventoryList:
         inven.daily_inven_report = [f"Day {inven.env.now//24+1}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
-                                        inven.on_hand_inventory, 0, 0, inven.in_transition_inventory, 0]  # inventory report
+                                    inven.on_hand_inventory, 0, 0, inven.in_transition_inventory, 0]  # inventory report
 
 
-'''
-
-def update_daily_report(inventoryList):
-    # Update daily reports for inventory
-    day_list = []
-    for inven in inventoryList:
-        inven.daily_inven_report[-1] = inven.on_hand_inventory
-        day_list=day_list+(inven.daily_inven_report)
-    DAILY_REPORTS.append(day_list)
-
-    #Reset report
-    for inven in inventoryList:
-            if PRINT_SIM_REPORT:
-                print(inven.daily_inven_report)
-            inven.daily_inven_report = [f"Day {inven.env.now//24}", I[inven.item_id]['NAME'], I[inven.item_id]['TYPE'],
-                                        inven.on_hand_inventory, 0, 0, 0]  # inventory report
-'''
 def present_daytime(env_now):
     fill_length = len(str(SIM_TIME * 24))
     return str(int(env_now)).zfill(fill_length)

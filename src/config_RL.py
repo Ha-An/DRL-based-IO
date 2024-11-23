@@ -24,11 +24,11 @@ STATE_RANGES.append((0, max(DEMAND_QTY_MAX, INVEN_LEVEL_MAX)))
 PRODUCT_OUTGOING_CORRECTION = 0
 for key in P:
     PRODUCT_OUTGOING_CORRECTION = max(P[key]["PRODUCTION_RATE"] *
-                                      max(P[key]['QNTY_FOR_INPUT_ITEM']), DEMAND_QTY_MAX)
+                                      max(P[key]['QNTY_FOR_INPUT_ITEM']), INVEN_LEVEL_MAX)
 # maximum production
 
 # Episode
-N_EPISODES = 1  # 3000
+N_EPISODES = 2  # 3000
 
 
 def DEFINE_FOLDER(folder_name):
@@ -37,6 +37,7 @@ def DEFINE_FOLDER(folder_name):
         folder_name = os.path.join(folder_name, f"Train_{len(file_list)+1}")
     else:
         folder_name = os.path.join(folder_name, "Train_1")
+    os.makedirs(folder_name)
     return folder_name
 
 
@@ -52,13 +53,14 @@ def save_path(path):
 OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
-#RL_Options
-DAILY_CHANGE=1 #0 Means False , 1 Means True
-INTRANSIT=0 #0 Means False , 1 Means True
-USE_CORRECTION=True
+# RL_Options
+DAILY_CHANGE = 0  # 0 Means False , 1 Means True
+INTRANSIT = 1  # 0 Means False , 1 Means True
+USE_CORRECTION = True
+EXPERIMENT = False
 
 # Evaluation
-N_EVAL_EPISODES = 15  # 100
+N_EVAL_EPISODES = 10  # 100
 
 # Export files
 DAILY_REPORT_EXPORT = False
@@ -70,17 +72,23 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 # Define each dir's parent dir's path
 tensorboard_folder = os.path.join(parent_dir, "tensorboard_log")
+experiment_folder = os.path.join(parent_dir, "experiment_log")
 result_csv_folder = os.path.join(parent_dir, "result_CSV")
 STATE_folder = os.path.join(result_csv_folder, "state")
+result_experiment = os.path.join(result_csv_folder, "Experiment_Result")
 daily_report_folder = os.path.join(result_csv_folder, "daily_report")
 
 # Define dir's path
 TENSORFLOW_LOGS = DEFINE_FOLDER(tensorboard_folder)
+if EXPERIMENT:
+    EXPERIMENT_LOGS = DEFINE_FOLDER(experiment_folder)
 '''
 STATE = DEFINE_FOLDER(STATE_folder)
 REPORT_LOGS = DEFINE_FOLDER(daily_report_folder)
 GRAPH_FOLDER = DEFINE_FOLDER(graph_folder)
 '''
+if EXPERIMENT:
+    RESULT_CSV_EXPERIMENT = save_path(result_experiment)
 STATE = save_path(STATE_folder)
 REPORT_LOGS = save_path(daily_report_folder)
 
