@@ -166,7 +166,6 @@ P = {0: {"ID": 0, "PRODUCTION_RATE": 2, "INPUT_TYPE_LIST": [I[1], I[2]], "QNTY_F
 '''
 
 # Options for RL states
-DAILY_CHANGE = 0  # 0: False / 1: True
 INTRANSIT = 1  # 0: False / 1: True
 
 

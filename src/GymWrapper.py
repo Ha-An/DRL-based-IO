@@ -55,16 +55,14 @@ class GymInterface(gym.Env):
             # if self.scenario["Dist_Type"] == "UNIFORM":
             #    k = INVEN_LEVEL_MAX*2+(self.scenario["max"]+1)
 
-            # DAILY_CHANGE + INTRANSIT + REMAINING_DEMAND
+            # INTRANSIT + REMAINING_DEMAND
             os = [
-                INVEN_LEVEL_MAX * 2 + 1 for _ in range(len(I)*(1+DAILY_CHANGE)+MAT_COUNT*INTRANSIT+1)]
+                INVEN_LEVEL_MAX * 2 + 1 for _ in range(len(I)+MAT_COUNT*INTRANSIT+1)]
             '''
             - Inventory Level of Product
-            - Daily Change of Product
             - Inventory Level of WIP
-            - Daily Change of WIP
             - Inventory Level of Material
-            - Daily Change of Material
+            - Intransit Level of Material
             - Demand - Inventory Level of Product
             '''
             self.observation_space = spaces.MultiDiscrete(os)
@@ -72,7 +70,6 @@ class GymInterface(gym.Env):
             pass
         elif RL_ALGORITHM == "DDPG":
             pass
-        print(os)
 
     def reset(self):
         # Initialize the total reward for the episode
@@ -180,11 +177,6 @@ class GymInterface(gym.Env):
             # append On_Hand_inventory
             state.append(
                 LOG_STATE_DICT[-1][f"On_Hand_{I[id]['NAME']}"]+INVEN_LEVEL_MAX)
-            # append changes in inventory
-            if DAILY_CHANGE == 1:
-                # append changes in inventory
-                state.append(
-                    LOG_STATE_DICT[-1][f"Daily_Change_{I[id]['NAME']}"]+INVEN_LEVEL_MAX)
             if INTRANSIT == 1:
                 if I[id]["TYPE"] == "Material":
                     # append Intransition inventory
@@ -255,7 +247,7 @@ def evaluate_model(model, env, num_episodes):
 
     Visualize_invens(onhand_inventory, demand_qty, Mat_Order, all_rewards)
     cal_cost_avg()
-    # print("Order_Average:", test_order_mean)
+
     if STATE_TEST_EXPORT:
         export_state("TEST")
     # Calculate mean reward across all episodes
@@ -368,14 +360,10 @@ def export_state(Record_Type):
     for id in I.keys():
         if I[id]["TYPE"] == 'Material':
             columns_list.append(f"{I[id]['NAME']}.InvenLevel")
-            if DAILY_CHANGE:
-                columns_list.append(f"{I[id]['NAME']}.DailyChange")
             if INTRANSIT:
                 columns_list.append(f"{I[id]['NAME']}.Intransit")
         else:
             columns_list.append(f"{I[id]['NAME']}.InvenLevel")
-            if DAILY_CHANGE:
-                columns_list.append(f"{I[id]['NAME']}.DailyChange")
     columns_list.append("Remaining_Demand")
     columns_list.append("Action")
     '''

@@ -54,7 +54,6 @@ OPTIMIZE_HYPERPARAMETERS = False
 N_TRIALS = 15  # 50
 
 # RL_Options
-DAILY_CHANGE = 0  # 0 Means False , 1 Means True
 INTRANSIT = 1  # 0 Means False , 1 Means True
 USE_CORRECTION = True
 EXPERIMENT = False
